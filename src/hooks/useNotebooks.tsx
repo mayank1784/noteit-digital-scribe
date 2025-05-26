@@ -1,61 +1,22 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { RegisteredNotebook, NotePage, Note, NotebookTemplate } from '@/types';
+import { RegisteredNotebook, NotePage, Note, NotebookTemplate, NotebookCategory, NoteType } from '@/types';
 import { useAuth } from './useAuth';
-
-const NOTEBOOK_TEMPLATES: NotebookTemplate[] = [
-  {
-    id: 'NB001',
-    title: 'Student Grid Notebook',
-    category: 'student',
-    pages: 48,
-    coverImage: '/covers/student-grid.jpg',
-    description: 'Perfect for taking class notes with grid layout'
-  },
-  {
-    id: 'NB002',
-    title: 'Business Planner',
-    category: 'business',
-    pages: 64,
-    coverImage: '/covers/business-planner.jpg',
-    description: 'Professional planner for meetings and projects'
-  },
-  {
-    id: 'NB003',
-    title: 'Creative Sketchbook',
-    category: 'creative',
-    pages: 96,
-    coverImage: '/covers/creative-sketch.jpg',
-    description: 'Blank pages for sketches and creative ideas'
-  },
-  {
-    id: 'NB004',
-    title: 'Daily Journal',
-    category: 'journal',
-    pages: 120,
-    coverImage: '/covers/daily-journal.jpg',
-    description: 'Lined pages for daily thoughts and reflections'
-  },
-  {
-    id: 'NB005',
-    title: 'Weekly Planner',
-    category: 'planner',
-    pages: 52,
-    coverImage: '/covers/weekly-planner.jpg',
-    description: 'Structured weekly planning pages'
-  }
-];
+import { supabase } from '@/integrations/supabase/client';
 
 interface NotebooksContextType {
   notebooks: RegisteredNotebook[];
   templates: NotebookTemplate[];
+  categories: NotebookCategory[];
+  noteTypes: NoteType[];
   registerNotebook: (notebookId: string, nickname: string) => Promise<boolean>;
   deleteNotebook: (notebookId: string) => void;
   getNotebook: (id: string) => RegisteredNotebook | undefined;
-  getPage: (notebookId: string, pageNumber: number) => NotePage;
-  addNote: (notebookId: string, pageNumber: number, note: Omit<Note, 'id' | 'timestamp'>) => void;
-  updateNote: (notebookId: string, pageNumber: number, noteId: string, content: string) => void;
-  deleteNote: (notebookId: string, pageNumber: number, noteId: string) => void;
+  getPage: (notebookId: string, pageNumber: number) => Promise<NotePage>;
+  addNote: (notebookId: string, pageNumber: number, note: Omit<Note, 'id' | 'timestamp' | 'created_at' | 'page_id'>) => Promise<void>;
+  updateNote: (noteId: string, content: string) => Promise<void>;
+  deleteNote: (noteId: string) => Promise<void>;
+  isLoading: boolean;
 }
 
 const NotebooksContext = createContext<NotebooksContextType | undefined>(undefined);
@@ -63,23 +24,58 @@ const NotebooksContext = createContext<NotebooksContextType | undefined>(undefin
 export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [notebooks, setNotebooks] = useState<RegisteredNotebook[]>([]);
+  const [templates, setTemplates] = useState<NotebookTemplate[]>([]);
+  const [categories, setCategories] = useState<NotebookCategory[]>([]);
+  const [noteTypes, setNoteTypes] = useState<NoteType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      // Load user's notebooks from localStorage
-      const storedNotebooks = localStorage.getItem(`noteit_notebooks_${user.id}`);
-      if (storedNotebooks) {
-        setNotebooks(JSON.parse(storedNotebooks));
-      }
+      loadData();
     } else {
       setNotebooks([]);
+      setIsLoading(false);
     }
   }, [user]);
 
-  const saveNotebooks = (newNotebooks: RegisteredNotebook[]) => {
-    if (user) {
-      setNotebooks(newNotebooks);
-      localStorage.setItem(`noteit_notebooks_${user.id}`, JSON.stringify(newNotebooks));
+  const loadData = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Load user's notebooks
+      const { data: notebooksData } = await supabase
+        .from('registered_notebooks')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('registered_at', { ascending: false });
+
+      // Load templates
+      const { data: templatesData } = await supabase
+        .from('notebook_templates')
+        .select('*');
+
+      // Load categories
+      const { data: categoriesData } = await supabase
+        .from('notebook_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order');
+
+      // Load note types
+      const { data: noteTypesData } = await supabase
+        .from('note_types')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order');
+
+      setNotebooks(notebooksData || []);
+      setTemplates(templatesData || []);
+      setCategories(categoriesData || []);
+      setNoteTypes(noteTypesData || []);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -91,164 +87,170 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return false;
     }
 
-    // Check if user has reached limit
-    if (notebooks.length >= user.maxNotebooks) {
+    // Get user's plan to check limits
+    const { data: userPlan } = await supabase
+      .from('user_plans')
+      .select('max_notebooks')
+      .eq('id', user.plan_id)
+      .single();
+
+    if (userPlan && notebooks.length >= userPlan.max_notebooks) {
       return false;
     }
 
     // Find template
-    const template = NOTEBOOK_TEMPLATES.find(t => notebookId.startsWith(t.id));
+    const template = templates.find(t => notebookId.startsWith(t.id));
     if (!template) return false;
 
-    const newNotebook: RegisteredNotebook = {
-      id: notebookId,
-      userId: user.id,
-      nickname,
-      category: template.category,
-      title: template.title,
-      totalPages: template.pages,
-      registeredAt: new Date().toISOString(),
-      coverImage: template.coverImage
-    };
+    const { error } = await supabase
+      .from('registered_notebooks')
+      .insert({
+        id: notebookId,
+        user_id: user.id,
+        nickname,
+        category_id: template.category_id,
+        title: template.title,
+        total_pages: template.pages,
+        cover_image: template.cover_image
+      });
 
-    saveNotebooks([...notebooks, newNotebook]);
+    if (error) {
+      console.error('Error registering notebook:', error);
+      return false;
+    }
+
+    // Reload notebooks
+    loadData();
     return true;
   };
 
-  const deleteNotebook = (notebookId: string) => {
-    const updatedNotebooks = notebooks.filter(nb => nb.id !== notebookId);
-    saveNotebooks(updatedNotebooks);
-    
-    // Also clean up pages data
-    if (user) {
-      const pagesKey = `noteit_pages_${user.id}_${notebookId}`;
-      localStorage.removeItem(pagesKey);
+  const deleteNotebook = async (notebookId: string) => {
+    const { error } = await supabase
+      .from('registered_notebooks')
+      .delete()
+      .eq('id', notebookId)
+      .eq('user_id', user!.id);
+
+    if (error) {
+      console.error('Error deleting notebook:', error);
+      return;
     }
+
+    // Reload notebooks
+    loadData();
   };
 
   const getNotebook = (id: string) => {
     return notebooks.find(nb => nb.id === id);
   };
 
-  const getPage = (notebookId: string, pageNumber: number): NotePage => {
+  const getPage = async (notebookId: string, pageNumber: number): Promise<NotePage> => {
     if (!user) throw new Error('User not authenticated');
 
-    const pagesKey = `noteit_pages_${user.id}_${notebookId}`;
-    const storedPages = localStorage.getItem(pagesKey);
-    const pages: NotePage[] = storedPages ? JSON.parse(storedPages) : [];
-    
     const pageId = `${notebookId}-${pageNumber}`;
-    let page = pages.find(p => p.id === pageId);
     
-    if (!page) {
-      page = {
+    // Try to get existing page
+    const { data: existingPage } = await supabase
+      .from('note_pages')
+      .select('*')
+      .eq('id', pageId)
+      .single();
+
+    if (existingPage) {
+      return existingPage;
+    }
+
+    // Create new page if it doesn't exist
+    const { data: newPage, error } = await supabase
+      .from('note_pages')
+      .insert({
         id: pageId,
-        notebookId,
-        pageNumber,
-        notes: [],
-        lastModified: new Date().toISOString()
-      };
-      pages.push(page);
-      localStorage.setItem(pagesKey, JSON.stringify(pages));
+        notebook_id: notebookId,
+        page_number: pageNumber
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating page:', error);
+      throw error;
     }
-    
-    return page;
+
+    return newPage;
   };
 
-  const savePages = (notebookId: string, pages: NotePage[]) => {
-    if (user) {
-      const pagesKey = `noteit_pages_${user.id}_${notebookId}`;
-      localStorage.setItem(pagesKey, JSON.stringify(pages));
-    }
-  };
-
-  const addNote = (notebookId: string, pageNumber: number, note: Omit<Note, 'id' | 'timestamp'>) => {
+  const addNote = async (notebookId: string, pageNumber: number, note: Omit<Note, 'id' | 'timestamp' | 'created_at' | 'page_id'>) => {
     if (!user) return;
 
-    const pagesKey = `noteit_pages_${user.id}_${notebookId}`;
-    const storedPages = localStorage.getItem(pagesKey);
-    const pages: NotePage[] = storedPages ? JSON.parse(storedPages) : [];
-    
     const pageId = `${notebookId}-${pageNumber}`;
-    let pageIndex = pages.findIndex(p => p.id === pageId);
     
-    if (pageIndex === -1) {
-      const newPage: NotePage = {
-        id: pageId,
-        notebookId,
-        pageNumber,
-        notes: [],
-        lastModified: new Date().toISOString()
-      };
-      pages.push(newPage);
-      pageIndex = pages.length - 1;
+    // Ensure page exists
+    await getPage(notebookId, pageNumber);
+
+    const { error } = await supabase
+      .from('notes')
+      .insert({
+        page_id: pageId,
+        type_id: note.type_id,
+        content: note.content,
+        duration: note.duration
+      });
+
+    if (error) {
+      console.error('Error adding note:', error);
+      return;
     }
-    
-    const newNote: Note = {
-      ...note,
-      id: `note_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toISOString()
-    };
-    
-    pages[pageIndex].notes.push(newNote);
-    pages[pageIndex].lastModified = new Date().toISOString();
-    
-    savePages(notebookId, pages);
-    
+
     // Update notebook last used
-    const notebook = notebooks.find(nb => nb.id === notebookId);
-    if (notebook) {
-      notebook.lastUsed = new Date().toISOString();
-      saveNotebooks([...notebooks]);
+    await supabase
+      .from('registered_notebooks')
+      .update({ last_used: new Date().toISOString() })
+      .eq('id', notebookId)
+      .eq('user_id', user.id);
+
+    // Update page last modified
+    await supabase
+      .from('note_pages')
+      .update({ last_modified: new Date().toISOString() })
+      .eq('id', pageId);
+  };
+
+  const updateNote = async (noteId: string, content: string) => {
+    const { error } = await supabase
+      .from('notes')
+      .update({ content })
+      .eq('id', noteId);
+
+    if (error) {
+      console.error('Error updating note:', error);
     }
   };
 
-  const updateNote = (notebookId: string, pageNumber: number, noteId: string, content: string) => {
-    if (!user) return;
+  const deleteNote = async (noteId: string) => {
+    const { error } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', noteId);
 
-    const pagesKey = `noteit_pages_${user.id}_${notebookId}`;
-    const storedPages = localStorage.getItem(pagesKey);
-    const pages: NotePage[] = storedPages ? JSON.parse(storedPages) : [];
-    
-    const pageIndex = pages.findIndex(p => p.id === `${notebookId}-${pageNumber}`);
-    if (pageIndex === -1) return;
-    
-    const noteIndex = pages[pageIndex].notes.findIndex(n => n.id === noteId);
-    if (noteIndex === -1) return;
-    
-    pages[pageIndex].notes[noteIndex].content = content;
-    pages[pageIndex].lastModified = new Date().toISOString();
-    
-    savePages(notebookId, pages);
-  };
-
-  const deleteNote = (notebookId: string, pageNumber: number, noteId: string) => {
-    if (!user) return;
-
-    const pagesKey = `noteit_pages_${user.id}_${notebookId}`;
-    const storedPages = localStorage.getItem(pagesKey);
-    const pages: NotePage[] = storedPages ? JSON.parse(storedPages) : [];
-    
-    const pageIndex = pages.findIndex(p => p.id === `${notebookId}-${pageNumber}`);
-    if (pageIndex === -1) return;
-    
-    pages[pageIndex].notes = pages[pageIndex].notes.filter(n => n.id !== noteId);
-    pages[pageIndex].lastModified = new Date().toISOString();
-    
-    savePages(notebookId, pages);
+    if (error) {
+      console.error('Error deleting note:', error);
+    }
   };
 
   return (
     <NotebooksContext.Provider value={{
       notebooks,
-      templates: NOTEBOOK_TEMPLATES,
+      templates,
+      categories,
+      noteTypes,
       registerNotebook,
       deleteNotebook,
       getNotebook,
       getPage,
       addNote,
       updateNote,
-      deleteNote
+      deleteNote,
+      isLoading
     }}>
       {children}
     </NotebooksContext.Provider>

@@ -9,7 +9,312 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      note_pages: {
+        Row: {
+          id: string
+          last_modified: string | null
+          notebook_id: string
+          page_number: number
+        }
+        Insert: {
+          id: string
+          last_modified?: string | null
+          notebook_id: string
+          page_number: number
+        }
+        Update: {
+          id?: string
+          last_modified?: string | null
+          notebook_id?: string
+          page_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_pages_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "registered_notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      note_types: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          max_size_mb: number | null
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id: string
+          is_active?: boolean | null
+          max_size_mb?: number | null
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_size_mb?: number | null
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      notebook_categories: {
+        Row: {
+          color: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          color: string
+          created_at?: string | null
+          description?: string | null
+          id: string
+          is_active?: boolean | null
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      notebook_templates: {
+        Row: {
+          category_id: string
+          cover_image: string | null
+          description: string | null
+          id: string
+          pages: number
+          title: string
+        }
+        Insert: {
+          category_id?: string
+          cover_image?: string | null
+          description?: string | null
+          id: string
+          pages: number
+          title: string
+        }
+        Update: {
+          category_id?: string
+          cover_image?: string | null
+          description?: string | null
+          id?: string
+          pages?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebook_templates_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "notebook_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notes: {
+        Row: {
+          content: string
+          created_at: string | null
+          duration: number | null
+          id: string
+          page_id: string
+          timestamp: string | null
+          type_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          duration?: number | null
+          id?: string
+          page_id: string
+          timestamp?: string | null
+          type_id?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          duration?: number | null
+          id?: string
+          page_id?: string
+          timestamp?: string | null
+          type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "note_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "note_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar: string | null
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+          plan_expires_at: string | null
+          plan_id: string | null
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string | null
+          email: string
+          id: string
+          name: string
+          plan_expires_at?: string | null
+          plan_id?: string | null
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+          plan_expires_at?: string | null
+          plan_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "user_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registered_notebooks: {
+        Row: {
+          category_id: string
+          cover_image: string | null
+          id: string
+          last_used: string | null
+          nickname: string
+          registered_at: string | null
+          title: string
+          total_pages: number
+          user_id: string
+        }
+        Insert: {
+          category_id?: string
+          cover_image?: string | null
+          id: string
+          last_used?: string | null
+          nickname: string
+          registered_at?: string | null
+          title: string
+          total_pages: number
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          cover_image?: string | null
+          id?: string
+          last_used?: string | null
+          nickname?: string
+          registered_at?: string | null
+          title?: string
+          total_pages?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registered_notebooks_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "notebook_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registered_notebooks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_plans: {
+        Row: {
+          created_at: string | null
+          display_name: string
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          max_file_size_mb: number | null
+          max_notebooks: number
+          max_notes_per_page: number | null
+          name: string
+          price_monthly: number | null
+          price_yearly: number | null
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name: string
+          features?: Json | null
+          id: string
+          is_active?: boolean | null
+          max_file_size_mb?: number | null
+          max_notebooks: number
+          max_notes_per_page?: number | null
+          name: string
+          price_monthly?: number | null
+          price_yearly?: number | null
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_file_size_mb?: number | null
+          max_notebooks?: number
+          max_notes_per_page?: number | null
+          name?: string
+          price_monthly?: number | null
+          price_yearly?: number | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

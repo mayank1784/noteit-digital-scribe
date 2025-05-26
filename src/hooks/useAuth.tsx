@@ -1,6 +1,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import type { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
@@ -17,70 +19,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing user session
-    const storedUser = localStorage.getItem('noteit_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleSession(session);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      handleSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSession = async (session: Session | null) => {
+    if (session?.user) {
+      // Fetch user profile from profiles table
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        setUser(null);
+      } else {
+        setUser(profile);
+      }
+    } else {
+      setUser(null);
     }
     setIsLoading(false);
-  }, []);
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // For demo, accept any valid email/password
-    if (email && password.length >= 6) {
-      const newUser: User = {
-        id: `user_${Date.now()}`,
-        email,
-        name: email.split('@')[0],
-        plan: 'free',
-        maxNotebooks: 5,
-        createdAt: new Date().toISOString()
-      };
-      
-      setUser(newUser);
-      localStorage.setItem('noteit_user', JSON.stringify(newUser));
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      console.error('Login error:', error);
       setIsLoading(false);
-      return true;
+      return false;
     }
-    
-    setIsLoading(false);
-    return false;
+
+    return true;
   };
 
   const register = async (email: string, password: string, name: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (email && password.length >= 6 && name) {
-      const newUser: User = {
-        id: `user_${Date.now()}`,
-        email,
-        name,
-        plan: 'free',
-        maxNotebooks: 5,
-        createdAt: new Date().toISOString()
-      };
-      
-      setUser(newUser);
-      localStorage.setItem('noteit_user', JSON.stringify(newUser));
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name: name
+        }
+      }
+    });
+
+    if (error) {
+      console.error('Registration error:', error);
       setIsLoading(false);
-      return true;
+      return false;
     }
-    
-    setIsLoading(false);
-    return false;
+
+    return true;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('noteit_user');
+  const logout = async () => {
+    await supabase.auth.signOut();
   };
 
   return (
