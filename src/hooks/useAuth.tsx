@@ -6,8 +6,9 @@ import type { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -53,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     
     const { error } = await supabase.auth.signInWithPassword({
@@ -61,16 +62,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       password
     });
 
+    setIsLoading(false);
+
     if (error) {
       console.error('Login error:', error);
-      setIsLoading(false);
-      return false;
+      return { 
+        success: false, 
+        error: error.message === 'Email not confirmed' 
+          ? 'Please check your email and click the confirmation link to verify your account.'
+          : error.message 
+      };
     }
 
-    return true;
+    return { success: true };
   };
 
-  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+  const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
+    setIsLoading(true);
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`
+      }
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      console.error('Google login error:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  };
+
+  const register = async (email: string, password: string, name: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     
     const { error } = await supabase.auth.signUp({
@@ -83,13 +110,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
+    setIsLoading(false);
+
     if (error) {
       console.error('Registration error:', error);
-      setIsLoading(false);
-      return false;
+      return { success: false, error: error.message };
     }
 
-    return true;
+    return { success: true };
   };
 
   const logout = async () => {
@@ -97,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, loginWithGoogle, register, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
