@@ -15,9 +15,10 @@ interface AddNoteModalProps {
   onClose: () => void;
   notebookId: string;
   pageNumber: number;
+  onNoteAdded?: () => void;
 }
 
-const AddNoteModal: React.FC<AddNoteModalProps> = ({ isOpen, onClose, notebookId, pageNumber }) => {
+const AddNoteModal: React.FC<AddNoteModalProps> = ({ isOpen, onClose, notebookId, pageNumber, onNoteAdded }) => {
   const [activeTab, setActiveTab] = useState('text');
   const [textContent, setTextContent] = useState('');
   const [photoCaption, setPhotoCaption] = useState('');
@@ -27,7 +28,7 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({ isOpen, onClose, notebookId
   const { addNote } = useNotebooks();
   const { toast } = useToast();
 
-  const handleSubmit = (type: 'text' | 'photo' | 'voice') => {
+  const handleSubmit = async (type: 'text' | 'photo' | 'voice') => {
     let content = '';
     
     switch (type) {
@@ -50,24 +51,37 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({ isOpen, onClose, notebookId
         break;
     }
 
-    addNote(notebookId, pageNumber, {
-      type,
-      content,
-      duration: type === 'voice' ? recordingTime : undefined
-    });
+    try {
+      await addNote(notebookId, pageNumber, {
+        type_id: type,
+        content,
+        duration: type === 'voice' ? recordingTime : undefined
+      });
 
-    toast({
-      title: "Note Added!",
-      description: `${type.charAt(0).toUpperCase() + type.slice(1)} note has been saved`
-    });
+      toast({
+        title: "Note Added!",
+        description: `${type.charAt(0).toUpperCase() + type.slice(1)} note has been saved`
+      });
 
-    // Reset form
-    setTextContent('');
-    setPhotoCaption('');
-    setVoiceCaption('');
-    setRecordingTime(0);
-    setIsRecording(false);
-    onClose();
+      // Reset form
+      setTextContent('');
+      setPhotoCaption('');
+      setVoiceCaption('');
+      setRecordingTime(0);
+      setIsRecording(false);
+      onClose();
+      
+      // Notify parent component
+      if (onNoteAdded) {
+        onNoteAdded();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save note. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleStartRecording = () => {

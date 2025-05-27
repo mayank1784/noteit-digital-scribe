@@ -10,7 +10,7 @@ import Layout from '@/components/Layout';
 
 const NotebookDetail = () => {
   const { notebookId } = useParams<{ notebookId: string }>();
-  const { getNotebook, deleteNotebook } = useNotebooks();
+  const { getNotebook, categories, deleteNotebook } = useNotebooks();
   const navigate = useNavigate();
 
   const notebook = notebookId ? getNotebook(notebookId) : undefined;
@@ -29,7 +29,7 @@ const NotebookDetail = () => {
     );
   }
 
-  const getCategoryColor = (category: string) => {
+  const getCategoryColor = (categoryId: string) => {
     const colors = {
       student: 'bg-purple-100 text-purple-800',
       business: 'bg-gray-100 text-gray-800',
@@ -37,7 +37,12 @@ const NotebookDetail = () => {
       journal: 'bg-teal-100 text-teal-800',
       planner: 'bg-red-100 text-red-800'
     };
-    return colors[category as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[categoryId as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getCategoryName = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    return category?.name || categoryId;
   };
 
   const handleDelete = () => {
@@ -48,7 +53,7 @@ const NotebookDetail = () => {
   };
 
   // Generate page grid (6x8 = 48 pages typical)
-  const pageGrid = Array.from({ length: notebook.totalPages }, (_, i) => i + 1);
+  const pageGrid = Array.from({ length: notebook.total_pages }, (_, i) => i + 1);
 
   return (
     <Layout title={notebook.nickname}>
@@ -65,8 +70,8 @@ const NotebookDetail = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">{notebook.nickname}</h1>
               <div className="flex items-center space-x-3 mt-1">
-                <Badge className={getCategoryColor(notebook.category)}>
-                  {notebook.category}
+                <Badge className={getCategoryColor(notebook.category_id)}>
+                  {getCategoryName(notebook.category_id)}
                 </Badge>
                 <span className="text-gray-600">{notebook.title}</span>
               </div>
@@ -94,19 +99,19 @@ const NotebookDetail = () => {
               <input
                 type="number"
                 min="1"
-                max={notebook.totalPages}
+                max={notebook.total_pages}
                 placeholder="Page number"
                 className="px-3 py-2 border border-gray-300 rounded-md w-32"
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
                     const pageNum = parseInt((e.target as HTMLInputElement).value);
-                    if (pageNum >= 1 && pageNum <= notebook.totalPages) {
+                    if (pageNum >= 1 && pageNum <= notebook.total_pages) {
                       navigate(`/page/${notebook.id}/${pageNum}`);
                     }
                   }
                 }}
               />
-              <span className="text-gray-600">of {notebook.totalPages} pages</span>
+              <span className="text-gray-600">of {notebook.total_pages} pages</span>
             </div>
           </CardContent>
         </Card>

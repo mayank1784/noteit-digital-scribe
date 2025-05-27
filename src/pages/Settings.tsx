@@ -10,7 +10,7 @@ import Layout from '@/components/Layout';
 
 const Settings = () => {
   const { user, logout } = useAuth();
-  const { notebooks, deleteNotebook } = useNotebooks();
+  const { notebooks, userPlan, deleteNotebook } = useNotebooks();
 
   const handleDeleteNotebook = (notebookId: string, nickname: string) => {
     if (confirm(`Are you sure you want to delete "${nickname}"? All notes will be lost.`)) {
@@ -55,20 +55,20 @@ const Settings = () => {
               <div>
                 <div className="flex items-center space-x-2 mb-1">
                   <span className="font-medium">
-                    {user?.plan === 'free' ? 'Free Plan' : 'Pro Plan'}
+                    {userPlan?.display_name || 'Free Plan'}
                   </span>
-                  <Badge variant={user?.plan === 'free' ? 'secondary' : 'default'}>
-                    {user?.plan?.toUpperCase()}
+                  <Badge variant={userPlan?.id === 'free' ? 'secondary' : 'default'}>
+                    {userPlan?.id?.toUpperCase() || 'FREE'}
                   </Badge>
                 </div>
                 <p className="text-gray-600">
-                  {user?.plan === 'free' 
-                    ? `${notebooks.length} of ${user.maxNotebooks} notebooks used`
+                  {userPlan?.id === 'free' 
+                    ? `${notebooks.length} of ${userPlan?.max_notebooks || 5} notebooks used`
                     : 'Unlimited notebooks'
                   }
                 </p>
               </div>
-              {user?.plan === 'free' && (
+              {userPlan?.id === 'free' && (
                 <Button className="gradient-bg">
                   Upgrade to Pro
                 </Button>
@@ -91,13 +91,13 @@ const Settings = () => {
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
-                  {notebooks.reduce((acc, nb) => acc + nb.totalPages, 0)}
+                  {notebooks.reduce((acc, nb) => acc + nb.total_pages, 0)}
                 </div>
                 <p className="text-gray-600">Total Pages</p>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
-                  {user ? new Date().getFullYear() - new Date(user.createdAt).getFullYear() || '< 1' : 0}
+                  {user ? new Date().getFullYear() - new Date(user.created_at).getFullYear() || '< 1' : 0}
                 </div>
                 <p className="text-gray-600">Years Active</p>
               </div>
@@ -126,7 +126,7 @@ const Settings = () => {
                     <div>
                       <p className="font-medium">{notebook.nickname}</p>
                       <p className="text-sm text-gray-600">
-                        {notebook.title} • {notebook.totalPages} pages • {notebook.category}
+                        {notebook.title} • {notebook.total_pages} pages • {notebook.category_id}
                       </p>
                     </div>
                     <Button

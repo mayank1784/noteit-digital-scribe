@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { RegisteredNotebook, NotePage, Note, NotebookTemplate, NotebookCategory, NoteType } from '@/types';
+import { RegisteredNotebook, NotePage, Note, NotebookTemplate, NotebookCategory, NoteType, UserPlan } from '@/types';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -9,11 +9,12 @@ interface NotebooksContextType {
   templates: NotebookTemplate[];
   categories: NotebookCategory[];
   noteTypes: NoteType[];
+  userPlan: UserPlan | null;
   registerNotebook: (notebookId: string, nickname: string) => Promise<boolean>;
   deleteNotebook: (notebookId: string) => void;
   getNotebook: (id: string) => RegisteredNotebook | undefined;
   getPage: (notebookId: string, pageNumber: number) => Promise<NotePage>;
-  addNote: (notebookId: string, pageNumber: number, note: Omit<Note, 'id' | 'timestamp' | 'created_at' | 'page_id'>) => Promise<void>;
+  addNote: (notebookId: string, pageNumber: number, note: { type_id: string; content: string; duration?: number }) => Promise<void>;
   updateNote: (noteId: string, content: string) => Promise<void>;
   deleteNote: (noteId: string) => Promise<void>;
   isLoading: boolean;
@@ -27,6 +28,7 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [templates, setTemplates] = useState<NotebookTemplate[]>([]);
   const [categories, setCategories] = useState<NotebookCategory[]>([]);
   const [noteTypes, setNoteTypes] = useState<NoteType[]>([]);
+  const [userPlan, setUserPlan] = useState<UserPlan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -34,6 +36,7 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       loadData();
     } else {
       setNotebooks([]);
+      setUserPlan(null);
       setIsLoading(false);
     }
   }, [user]);
@@ -68,10 +71,18 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         .eq('is_active', true)
         .order('sort_order');
 
+      // Load user plan
+      const { data: planData } = await supabase
+        .from('user_plans')
+        .select('*')
+        .eq('id', user!.plan_id)
+        .single();
+
       setNotebooks(notebooksData || []);
       setTemplates(templatesData || []);
       setCategories(categoriesData || []);
       setNoteTypes(noteTypesData || []);
+      setUserPlan(planData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -80,21 +91,14 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const registerNotebook = async (notebookId: string, nickname: string): Promise<boolean> => {
-    if (!user) return false;
+    if (!user || !userPlan) return false;
 
     // Check if notebook already registered
     if (notebooks.find(nb => nb.id === notebookId)) {
       return false;
     }
 
-    // Get user's plan to check limits
-    const { data: userPlan } = await supabase
-      .from('user_plans')
-      .select('max_notebooks')
-      .eq('id', user.plan_id)
-      .single();
-
-    if (userPlan && notebooks.length >= userPlan.max_notebooks) {
+    if (notebooks.length >= userPlan.max_notebooks) {
       return false;
     }
 
@@ -149,15 +153,25 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const pageId = `${notebookId}-${pageNumber}`;
     
-    // Try to get existing page
+    // Try to get existing page with notes
     const { data: existingPage } = await supabase
       .from('note_pages')
       .select('*')
       .eq('id', pageId)
       .single();
 
+    // Get notes for this page
+    const { data: notesData } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('page_id', pageId)
+      .order('timestamp', { ascending: false });
+
     if (existingPage) {
-      return existingPage;
+      return {
+        ...existingPage,
+        notes: notesData || []
+      };
     }
 
     // Create new page if it doesn't exist
@@ -176,10 +190,13 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       throw error;
     }
 
-    return newPage;
+    return {
+      ...newPage,
+      notes: []
+    };
   };
 
-  const addNote = async (notebookId: string, pageNumber: number, note: Omit<Note, 'id' | 'timestamp' | 'created_at' | 'page_id'>) => {
+  const addNote = async (notebookId: string, pageNumber: number, note: { type_id: string; content: string; duration?: number }) => {
     if (!user) return;
 
     const pageId = `${notebookId}-${pageNumber}`;
@@ -243,6 +260,7 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       templates,
       categories,
       noteTypes,
+      userPlan,
       registerNotebook,
       deleteNotebook,
       getNotebook,

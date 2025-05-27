@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNotebooks } from '@/hooks/useNotebooks';
-import { ArrowLeft, ArrowRight, Plus, Edit, Trash2, Camera, Mic, FileText } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Trash2, Camera, Mic, FileText } from 'lucide-react';
 import Layout from '@/components/Layout';
 import AddNoteModal from '@/components/AddNoteModal';
 
@@ -13,20 +13,45 @@ const PageInterface = () => {
   const { getNotebook, getPage, deleteNote } = useNotebooks();
   const navigate = useNavigate();
   const [showAddNote, setShowAddNote] = useState(false);
+  const [page, setPage] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const notebook = notebookId ? getNotebook(notebookId) : undefined;
-  const page = notebookId && pageNumber ? getPage(notebookId, parseInt(pageNumber)) : null;
   const currentPageNum = parseInt(pageNumber || '1');
 
-  if (!notebook || !page) {
+  useEffect(() => {
+    const loadPage = async () => {
+      if (notebookId && pageNumber) {
+        try {
+          setLoading(true);
+          const pageData = await getPage(notebookId, parseInt(pageNumber));
+          setPage(pageData);
+        } catch (error) {
+          console.error('Error loading page:', error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadPage();
+  }, [notebookId, pageNumber, getPage]);
+
+  if (!notebook || loading) {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Page Not Found</h1>
-          <p className="text-gray-600 mt-2">The requested page could not be found.</p>
-          <Link to="/dashboard">
-            <Button className="mt-4">Back to Dashboard</Button>
-          </Link>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {loading ? 'Loading...' : 'Page Not Found'}
+          </h1>
+          {!loading && (
+            <>
+              <p className="text-gray-600 mt-2">The requested page could not be found.</p>
+              <Link to="/dashboard">
+                <Button className="mt-4">Back to Dashboard</Button>
+              </Link>
+            </>
+          )}
         </div>
       </Layout>
     );
@@ -51,10 +76,19 @@ const PageInterface = () => {
     }
   };
 
-  const handleDeleteNote = (noteId: string) => {
+  const handleDeleteNote = async (noteId: string) => {
     if (confirm('Are you sure you want to delete this note?')) {
-      deleteNote(notebookId!, currentPageNum, noteId);
+      await deleteNote(noteId);
+      // Reload page data
+      const pageData = await getPage(notebookId!, currentPageNum);
+      setPage(pageData);
     }
+  };
+
+  const handleNoteAdded = async () => {
+    // Reload page data after adding a note
+    const pageData = await getPage(notebookId!, currentPageNum);
+    setPage(pageData);
   };
 
   return (
@@ -73,7 +107,7 @@ const PageInterface = () => {
               <h1 className="text-2xl font-bold text-gray-900">
                 {notebook.nickname} - Page {currentPageNum}
               </h1>
-              <p className="text-gray-600">of {notebook.totalPages} pages</p>
+              <p className="text-gray-600">of {notebook.total_pages} pages</p>
             </div>
           </div>
 
@@ -90,10 +124,10 @@ const PageInterface = () => {
             )}
             
             <span className="text-sm text-gray-600 px-2">
-              {currentPageNum} / {notebook.totalPages}
+              {currentPageNum} / {notebook.total_pages}
             </span>
             
-            {currentPageNum < notebook.totalPages && (
+            {currentPageNum < notebook.total_pages && (
               <Button
                 variant="outline"
                 size="sm"
@@ -115,7 +149,7 @@ const PageInterface = () => {
 
         {/* Notes List */}
         <div className="space-y-4">
-          {page.notes.length === 0 ? (
+          {!page?.notes || page.notes.length === 0 ? (
             <Card className="text-center py-12">
               <CardContent>
                 <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -133,14 +167,14 @@ const PageInterface = () => {
             </Card>
           ) : (
             page.notes
-              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-              .map((note) => (
+              .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+              .map((note: any) => (
                 <Card key={note.id} className="hover-scale">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        {getNoteIcon(note.type)}
-                        <span className="font-medium capitalize">{note.type} Note</span>
+                        {getNoteIcon(note.type_id)}
+                        <span className="font-medium capitalize">{note.type_id} Note</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="text-sm text-gray-500">
@@ -158,13 +192,13 @@ const PageInterface = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {note.type === 'text' && (
+                    {note.type_id === 'text' && (
                       <div className="prose prose-sm max-w-none">
                         <p className="whitespace-pre-wrap">{note.content}</p>
                       </div>
                     )}
                     
-                    {note.type === 'photo' && (
+                    {note.type_id === 'photo' && (
                       <div className="space-y-2">
                         <div className="w-full max-w-md h-48 bg-gray-100 rounded-lg flex items-center justify-center">
                           <Camera className="w-12 h-12 text-gray-400" />
@@ -176,7 +210,7 @@ const PageInterface = () => {
                       </div>
                     )}
                     
-                    {note.type === 'voice' && (
+                    {note.type_id === 'voice' && (
                       <div className="space-y-2">
                         <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
                           <Button variant="outline" size="sm">
@@ -207,6 +241,7 @@ const PageInterface = () => {
           onClose={() => setShowAddNote(false)}
           notebookId={notebookId!}
           pageNumber={currentPageNum}
+          onNoteAdded={handleNoteAdded}
         />
       </div>
     </Layout>

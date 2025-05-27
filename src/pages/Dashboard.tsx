@@ -11,9 +11,12 @@ import Layout from '@/components/Layout';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { notebooks, deleteNotebook } = useNotebooks();
+  const { notebooks, categories, userPlan, deleteNotebook } = useNotebooks();
 
-  const getCategoryColor = (category: string) => {
+  const getCategoryColor = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return 'bg-gray-100 text-gray-800';
+    
     const colors = {
       student: 'bg-purple-100 text-purple-800',
       business: 'bg-gray-100 text-gray-800',
@@ -21,7 +24,12 @@ const Dashboard = () => {
       journal: 'bg-teal-100 text-teal-800',
       planner: 'bg-red-100 text-red-800'
     };
-    return colors[category as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[categoryId as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getCategoryName = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    return category?.name || categoryId;
   };
 
   const formatDate = (dateString: string) => {
@@ -32,6 +40,9 @@ const Dashboard = () => {
     });
   };
 
+  const maxNotebooks = userPlan?.max_notebooks || 5;
+  const planName = userPlan?.display_name || 'Free Plan';
+
   return (
     <Layout title="Dashboard">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -40,7 +51,7 @@ const Dashboard = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">My Notebooks</h1>
             <p className="text-gray-600 mt-1">
-              {notebooks.length} of {user?.maxNotebooks} notebooks registered
+              {notebooks.length} of {maxNotebooks} notebooks registered
             </p>
           </div>
           <Link to="/register-notebook">
@@ -58,8 +69,7 @@ const Dashboard = () => {
               <div>
                 <h3 className="font-semibold text-lg">Usage Overview</h3>
                 <p className="text-gray-600">
-                  {user?.plan === 'free' ? 'Free Plan' : 'Pro Plan'} - 
-                  {notebooks.length}/{user?.maxNotebooks} notebooks used
+                  {planName} - {notebooks.length}/{maxNotebooks} notebooks used
                 </p>
               </div>
               <div className="flex items-center space-x-4">
@@ -67,11 +77,11 @@ const Dashboard = () => {
                   <div 
                     className="h-full gradient-bg transition-all duration-300"
                     style={{ 
-                      width: `${(notebooks.length / (user?.maxNotebooks || 5)) * 100}%` 
+                      width: `${(notebooks.length / maxNotebooks) * 100}%` 
                     }}
                   />
                 </div>
-                {user?.plan === 'free' && notebooks.length >= (user?.maxNotebooks || 5) && (
+                {userPlan?.id === 'free' && notebooks.length >= maxNotebooks && (
                   <Button variant="outline" size="sm">
                     Upgrade to Pro
                   </Button>
@@ -115,8 +125,8 @@ const Dashboard = () => {
                         {notebook.title}
                       </CardDescription>
                     </div>
-                    <Badge className={getCategoryColor(notebook.category)}>
-                      {notebook.category}
+                    <Badge className={getCategoryColor(notebook.category_id)}>
+                      {getCategoryName(notebook.category_id)}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -130,12 +140,12 @@ const Dashboard = () => {
 
                     {/* Stats */}
                     <div className="flex justify-between text-sm text-gray-600">
-                      <span>{notebook.totalPages} pages</span>
+                      <span>{notebook.total_pages} pages</span>
                       <span className="flex items-center">
                         <Calendar className="w-3 h-3 mr-1" />
-                        {notebook.lastUsed 
-                          ? formatDate(notebook.lastUsed)
-                          : formatDate(notebook.registeredAt)
+                        {notebook.last_used 
+                          ? formatDate(notebook.last_used)
+                          : formatDate(notebook.registered_at)
                         }
                       </span>
                     </div>
@@ -175,7 +185,7 @@ const Dashboard = () => {
             <CardContent>
               <div className="space-y-3">
                 {notebooks
-                  .sort((a, b) => new Date(b.lastUsed || b.registeredAt).getTime() - new Date(a.lastUsed || a.registeredAt).getTime())
+                  .sort((a, b) => new Date(b.last_used || b.registered_at).getTime() - new Date(a.last_used || a.registered_at).getTime())
                   .slice(0, 5)
                   .map((notebook) => (
                     <div key={notebook.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
@@ -186,7 +196,7 @@ const Dashboard = () => {
                         <div>
                           <p className="font-medium text-sm">{notebook.nickname}</p>
                           <p className="text-xs text-gray-500">
-                            {notebook.lastUsed ? 'Last used' : 'Registered'} {formatDate(notebook.lastUsed || notebook.registeredAt)}
+                            {notebook.last_used ? 'Last used' : 'Registered'} {formatDate(notebook.last_used || notebook.registered_at)}
                           </p>
                         </div>
                       </div>

@@ -59,6 +59,7 @@ export interface NotePage {
   notebook_id: string;
   page_number: number;
   last_modified: string;
+  notes?: Note[]; // Added for easier data handling
 }
 
 export interface Note {
