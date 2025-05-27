@@ -25,6 +25,7 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({ isOpen, onClose, notebookId
   const [voiceCaption, setVoiceCaption] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { addNote } = useNotebooks();
   const { toast } = useToast();
 
@@ -44,9 +45,25 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({ isOpen, onClose, notebookId
         content = textContent;
         break;
       case 'photo':
+        if (!selectedFile && !photoCaption.trim()) {
+          toast({
+            title: "Empty Photo Note",
+            description: "Please add a photo or caption",
+            variant: "destructive"
+          });
+          return;
+        }
         content = photoCaption || 'Photo note';
         break;
       case 'voice':
+        if (recordingTime === 0 && !voiceCaption.trim()) {
+          toast({
+            title: "Empty Voice Note",
+            description: "Please record audio or add a description",
+            variant: "destructive"
+          });
+          return;
+        }
         content = voiceCaption || 'Voice recording';
         break;
     }
@@ -69,6 +86,7 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({ isOpen, onClose, notebookId
       setVoiceCaption('');
       setRecordingTime(0);
       setIsRecording(false);
+      setSelectedFile(null);
       onClose();
       
       // Notify parent component
@@ -76,11 +94,22 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({ isOpen, onClose, notebookId
         onNoteAdded();
       }
     } catch (error) {
+      console.error('Error adding note:', error);
       toast({
         title: "Error",
         description: "Failed to save note. Please try again.",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      if (!photoCaption) {
+        setPhotoCaption(`Photo: ${file.name}`);
+      }
     }
   };
 
@@ -175,25 +204,46 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({ isOpen, onClose, notebookId
 
           <TabsContent value="photo" className="space-y-4">
             <div className="space-y-4">
-              {/* Photo Capture Area */}
+              {/* Photo Upload Area */}
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">Take a photo or upload an image</p>
-                <div className="flex space-x-2 justify-center">
-                  <Button variant="outline" size="sm">
-                    <Camera className="w-4 h-4 mr-2" />
-                    Camera
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload
-                  </Button>
-                </div>
+                {selectedFile ? (
+                  <div className="space-y-4">
+                    <div className="w-32 h-32 mx-auto bg-gray-100 rounded-lg flex items-center justify-center">
+                      <Camera className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-sm text-gray-600">{selectedFile.name}</p>
+                    <Button variant="outline" size="sm" onClick={() => setSelectedFile(null)}>
+                      Remove File
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-4">Upload an image file</p>
+                    <div className="flex space-x-2 justify-center">
+                      <label htmlFor="photo-upload">
+                        <Button variant="outline" size="sm" asChild>
+                          <span>
+                            <Upload className="w-4 h-4 mr-2" />
+                            Upload File
+                          </span>
+                        </Button>
+                      </label>
+                      <input
+                        id="photo-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Photo Caption */}
               <div className="space-y-2">
-                <Label htmlFor="photoCaption">Caption (optional)</Label>
+                <Label htmlFor="photoCaption">Caption</Label>
                 <Input
                   id="photoCaption"
                   placeholder="Add a caption for your photo..."
@@ -207,6 +257,7 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({ isOpen, onClose, notebookId
               <Button 
                 onClick={() => handleSubmit('photo')}
                 className="flex-1 gradient-bg"
+                disabled={!selectedFile && !photoCaption.trim()}
               >
                 Save Photo Note
               </Button>
@@ -255,9 +306,6 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({ isOpen, onClose, notebookId
                       <Button onClick={handleStartRecording} variant="outline" size="sm">
                         Re-record
                       </Button>
-                      <Button variant="outline" size="sm">
-                        Play
-                      </Button>
                     </div>
                   </div>
                 )}
@@ -265,7 +313,7 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({ isOpen, onClose, notebookId
 
               {/* Voice Caption */}
               <div className="space-y-2">
-                <Label htmlFor="voiceCaption">Description (optional)</Label>
+                <Label htmlFor="voiceCaption">Description</Label>
                 <Input
                   id="voiceCaption"
                   placeholder="Add a description for your voice note..."
@@ -279,7 +327,7 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({ isOpen, onClose, notebookId
               <Button 
                 onClick={() => handleSubmit('voice')}
                 className="flex-1 gradient-bg"
-                disabled={recordingTime === 0}
+                disabled={recordingTime === 0 && !voiceCaption.trim()}
               >
                 Save Voice Note
               </Button>
