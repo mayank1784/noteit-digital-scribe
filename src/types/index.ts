@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   email: string;
@@ -68,6 +69,7 @@ export interface Note {
   content: string;
   timestamp: string;
   duration?: number; // For voice notes in seconds
+  file_url?: string; // Added for file uploads
   created_at: string;
 }
 
