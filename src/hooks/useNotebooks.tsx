@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { RegisteredNotebook, NotePage, Note, NotebookTemplate, NotebookCategory, NoteType, UserPlan } from '@/types';
 import { useAuth } from './useAuth';
@@ -14,7 +13,7 @@ interface NotebooksContextType {
   deleteNotebook: (notebookId: string) => void;
   getNotebook: (id: string) => RegisteredNotebook | undefined;
   getPage: (notebookId: string, pageNumber: number) => Promise<NotePage>;
-  addNote: (notebookId: string, pageNumber: number, note: { type_id: string; content: string; duration?: number }) => Promise<void>;
+  addNote: (notebookId: string, pageNumber: number, note: { type_id: string; content: string; duration?: number; file_url?: string }) => Promise<void>;
   updateNote: (noteId: string, content: string) => Promise<void>;
   deleteNote: (noteId: string) => Promise<void>;
   isLoading: boolean;
@@ -204,7 +203,7 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   };
 
-  const addNote = async (notebookId: string, pageNumber: number, note: { type_id: string; content: string; duration?: number }) => {
+  const addNote = async (notebookId: string, pageNumber: number, note: { type_id: string; content: string; duration?: number; file_url?: string }) => {
     if (!user) return;
 
     const pageId = `${notebookId}-${pageNumber}`;
@@ -218,7 +217,8 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         page_id: pageId,
         type_id: note.type_id,
         content: note.content,
-        duration: note.duration
+        duration: note.duration,
+        file_url: note.file_url
       });
 
     if (error) {

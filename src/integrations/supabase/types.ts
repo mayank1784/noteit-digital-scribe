@@ -141,6 +141,7 @@ export type Database = {
           content: string
           created_at: string | null
           duration: number | null
+          file_url: string | null
           id: string
           page_id: string
           timestamp: string | null
@@ -150,6 +151,7 @@ export type Database = {
           content: string
           created_at?: string | null
           duration?: number | null
+          file_url?: string | null
           id?: string
           page_id: string
           timestamp?: string | null
@@ -159,6 +161,7 @@ export type Database = {
           content?: string
           created_at?: string | null
           duration?: number | null
+          file_url?: string | null
           id?: string
           page_id?: string
           timestamp?: string | null

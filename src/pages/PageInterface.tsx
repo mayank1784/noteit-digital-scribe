@@ -4,7 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNotebooks } from '@/hooks/useNotebooks';
-import { ArrowLeft, ArrowRight, Plus, Trash2, Camera, Mic, FileText } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Trash2, Camera, Mic, FileText, Play, Pause, Download } from 'lucide-react';
 import Layout from '@/components/Layout';
 import AddNoteModal from '@/components/AddNoteModal';
 import { NotePage } from '@/types';
@@ -16,6 +16,8 @@ const PageInterface = () => {
   const [showAddNote, setShowAddNote] = useState(false);
   const [page, setPage] = useState<NotePage | null>(null);
   const [loading, setLoading] = useState(true);
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
 
   const notebook = notebookId ? getNotebook(notebookId) : undefined;
   const currentPageNum = parseInt(pageNumber || '1');
@@ -42,12 +44,12 @@ const PageInterface = () => {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             {loading ? 'Loading...' : 'Page Not Found'}
           </h1>
           {!loading && (
             <>
-              <p className="text-gray-600 mt-2">The requested page could not be found.</p>
+              <p className="text-gray-600 mt-2 text-sm">The requested page could not be found.</p>
               <Link to="/dashboard">
                 <Button className="mt-4">Back to Dashboard</Button>
               </Link>
@@ -96,40 +98,78 @@ const PageInterface = () => {
     }
   };
 
+  const playPauseAudio = (noteId: string, audioUrl: string) => {
+    const currentAudio = audioElements[noteId];
+    
+    if (playingAudio === noteId && currentAudio) {
+      currentAudio.pause();
+      setPlayingAudio(null);
+    } else {
+      // Pause any currently playing audio
+      Object.values(audioElements).forEach(audio => audio.pause());
+      setPlayingAudio(null);
+      
+      // Play the selected audio
+      let audio = currentAudio;
+      if (!audio) {
+        audio = new Audio(audioUrl);
+        audio.onended = () => setPlayingAudio(null);
+        setAudioElements(prev => ({ ...prev, [noteId]: audio }));
+      }
+      
+      audio.play();
+      setPlayingAudio(noteId);
+    }
+  };
+
+  const downloadFile = (url: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <Layout title={`${notebook.nickname} - Page ${currentPageNum}`}>
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-between mb-4 sm:mb-8">
+          <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
             <Link to={`/notebook/${notebookId}`}>
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Notebook
+              <Button variant="ghost" size="sm" className="text-xs sm:text-sm">
+                <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                <span className="hidden sm:inline">Back to Notebook</span>
+                <span className="sm:hidden">Back</span>
               </Button>
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {notebook.nickname} - Page {currentPageNum}
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
+                {notebook.nickname}
               </h1>
-              <p className="text-gray-600">of {notebook.total_pages} pages</p>
+              <p className="text-xs sm:text-sm text-gray-600">
+                Page {currentPageNum} of {notebook.total_pages}
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
             {/* Page Navigation */}
             {currentPageNum > 1 && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate(`/page/${notebookId}/${currentPageNum - 1}`)}
+                className="h-8 w-8 p-0"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-3 h-3" />
               </Button>
             )}
             
-            <span className="text-sm text-gray-600 px-2">
-              {currentPageNum} / {notebook.total_pages}
+            <span className="text-xs text-gray-600 px-1 whitespace-nowrap">
+              {currentPageNum}/{notebook.total_pages}
             </span>
             
             {currentPageNum < notebook.total_pages && (
@@ -137,35 +177,40 @@ const PageInterface = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => navigate(`/page/${notebookId}/${currentPageNum + 1}`)}
+                className="h-8 w-8 p-0"
               >
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3 h-3" />
               </Button>
             )}
           </div>
         </div>
 
         {/* Add Note Button */}
-        <div className="mb-6">
-          <Button onClick={() => setShowAddNote(true)} className="gradient-bg">
+        <div className="mb-4 sm:mb-6">
+          <Button 
+            onClick={() => setShowAddNote(true)} 
+            className="gradient-bg w-full sm:w-auto text-sm"
+            size="sm"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Add Note
           </Button>
         </div>
 
         {/* Notes List */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {!page?.notes || page.notes.length === 0 ? (
-            <Card className="text-center py-12">
+            <Card className="text-center py-8 sm:py-12">
               <CardContent>
-                <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <FileText className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
                   No Notes Yet
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-sm text-gray-600 mb-3 sm:mb-4 px-4">
                   Start adding digital notes to this page by clicking the "Add Note" button above.
                 </p>
-                <Button onClick={() => setShowAddNote(true)} variant="outline">
-                  <Plus className="w-4 h-4 mr-2" />
+                <Button onClick={() => setShowAddNote(true)} variant="outline" size="sm">
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                   Add Your First Note
                 </Button>
               </CardContent>
@@ -175,65 +220,106 @@ const PageInterface = () => {
               .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
               .map((note) => (
                 <Card key={note.id} className="hover-scale">
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-2 sm:pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         {getNoteIcon(note.type_id)}
-                        <span className="font-medium capitalize">{note.type_id} Note</span>
+                        <span className="text-sm font-medium capitalize">{note.type_id} Note</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-500">
+                        <span className="text-xs text-gray-500 hidden sm:inline">
                           {formatTimestamp(note.timestamp)}
                         </span>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteNote(note.id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>
+                    <div className="text-xs text-gray-500 sm:hidden">
+                      {formatTimestamp(note.timestamp)}
+                    </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0">
                     {note.type_id === 'text' && (
                       <div className="prose prose-sm max-w-none">
-                        <p className="whitespace-pre-wrap">{note.content}</p>
+                        <p className="whitespace-pre-wrap text-sm">{note.content}</p>
                       </div>
                     )}
                     
                     {note.type_id === 'photo' && (
                       <div className="space-y-2">
-                        <div className="w-full max-w-md h-48 bg-gray-100 rounded-lg flex items-center justify-center">
-                          <Camera className="w-12 h-12 text-gray-400" />
-                          <span className="ml-2 text-gray-500">Photo</span>
-                        </div>
+                        {note.file_url ? (
+                          <div className="relative">
+                            <img 
+                              src={note.file_url} 
+                              alt="Note photo" 
+                              className="w-full max-w-md h-32 sm:h-48 object-cover rounded-lg cursor-pointer"
+                              onClick={() => window.open(note.file_url, '_blank')}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => downloadFile(note.file_url!, `photo-${note.id}.jpg`)}
+                              className="absolute top-2 right-2 h-6 w-6 p-0 bg-white/80"
+                            >
+                              <Download className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="w-full max-w-md h-32 sm:h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <Camera className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" />
+                          </div>
+                        )}
                         {note.content && (
-                          <p className="text-sm text-gray-600">{note.content}</p>
+                          <p className="text-xs sm:text-sm text-gray-600">{note.content}</p>
                         )}
                       </div>
                     )}
                     
                     {note.type_id === 'voice' && (
                       <div className="space-y-2">
-                        <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                          <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-full">
-                            <Mic className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1">
+                        <div className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => note.file_url && playPauseAudio(note.id, note.file_url)}
+                            disabled={!note.file_url}
+                            className="h-8 w-8 p-0"
+                          >
+                            {playingAudio === note.id ? (
+                              <Pause className="w-3 h-3" />
+                            ) : (
+                              <Play className="w-3 h-3" />
+                            )}
+                          </Button>
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2">
-                              <div className="h-2 bg-gray-200 rounded-full flex-1">
+                              <div className="h-1.5 sm:h-2 bg-gray-200 rounded-full flex-1">
                                 <div className="h-full w-1/3 bg-blue-500 rounded-full"></div>
                               </div>
-                              <span className="text-sm text-gray-600">
+                              <span className="text-xs text-gray-600 whitespace-nowrap">
                                 {note.duration ? `${Math.floor(note.duration / 60)}:${(note.duration % 60).toString().padStart(2, '0')}` : '0:30'}
                               </span>
                             </div>
                           </div>
+                          {note.file_url && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => downloadFile(note.file_url!, `voice-${note.id}.webm`)}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Download className="w-3 h-3" />
+                            </Button>
+                          )}
                         </div>
                         {note.content && (
-                          <p className="text-sm text-gray-600">{note.content}</p>
+                          <p className="text-xs sm:text-sm text-gray-600">{note.content}</p>
                         )}
                       </div>
                     )}

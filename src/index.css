@@ -43,11 +43,15 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    /* Prevent zoom on iOS when focusing inputs */
+    -webkit-text-size-adjust: 100%;
+    /* Improve touch scrolling */
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
   }
   
   ::-webkit-scrollbar-track {
@@ -61,6 +65,27 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-400;
   }
+
+  /* Mobile-specific improvements */
+  @media (max-width: 768px) {
+    /* Prevent zoom on form inputs */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+    
+    /* Improve tap targets */
+    button,
+    a,
+    [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
 }
 
 @layer components {
@@ -73,6 +98,61 @@
   }
   
   .hover-scale {
-    @apply transition-transform duration-200 hover:scale-105;
+    @apply transition-transform duration-200;
   }
+  
+  /* Only apply hover effects on non-touch devices */
+  @media (hover: hover) {
+    .hover-scale:hover {
+      @apply scale-105;
+    }
+  }
+
+  /* Mobile-optimized card styling */
+  .mobile-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4;
+  }
+
+  /* Safe area for mobile devices */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Touch-friendly buttons */
+  .touch-button {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+}
+
+/* PWA-specific styles */
+@media (display-mode: standalone) {
+  body {
+    /* Hide the default browser UI elements */
+    -webkit-app-region: no-drag;
+  }
+  
+  /* Adjust for status bar on mobile devices */
+  .app-header {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Optimize for mobile performance */
+* {
+  /* Hardware acceleration for smoother animations */
+  -webkit-transform: translateZ(0);
+  /* Reduce paint complexity */
+  -webkit-backface-visibility: hidden;
+}
+
+/* Image optimization for mobile */
+img {
+  /* Prevent layout shift */
+  height: auto;
+  /* Optimize rendering */
+  image-rendering: -webkit-optimize-contrast;
 }
