@@ -16,7 +16,7 @@ const RegisterNotebook = () => {
   const [nickname, setNickname] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [useManualEntry, setUseManualEntry] = useState(false);
-  const { registerNotebook, templates } = useNotebooks();
+  const { registerNotebook, templates, notebooks, userPlan } = useNotebooks();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -52,10 +52,10 @@ const RegisterNotebook = () => {
     }
 
     // Check if user has reached limit
-    if (user && user.plan === 'free' && user.maxNotebooks <= 0) {
+    if (user && userPlan && notebooks.length >= userPlan.max_notebooks) {
       toast({
         title: "Limit Reached",
-        description: "Free plan allows up to 5 notebooks. Upgrade to Pro for unlimited notebooks.",
+        description: `${userPlan.display_name} allows up to ${userPlan.max_notebooks} notebooks. Upgrade to Pro for unlimited notebooks.`,
         variant: "destructive"
       });
       return;

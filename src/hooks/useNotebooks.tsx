@@ -82,7 +82,15 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setTemplates(templatesData || []);
       setCategories(categoriesData || []);
       setNoteTypes(noteTypesData || []);
-      setUserPlan(planData);
+      
+      // Convert the Json features to string[] for our UserPlan type
+      if (planData) {
+        const convertedPlan: UserPlan = {
+          ...planData,
+          features: Array.isArray(planData.features) ? planData.features as string[] : []
+        };
+        setUserPlan(convertedPlan);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {

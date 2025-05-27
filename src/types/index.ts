@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   email: string;
@@ -18,7 +17,7 @@ export interface UserPlan {
   max_file_size_mb?: number;
   price_monthly: number;
   price_yearly: number;
-  features: string[];
+  features: string[]; // Keep as string[] for our app logic
   is_active: boolean;
   sort_order: number;
 }
