@@ -1,52 +1,132 @@
-
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useNotebooks } from '@/hooks/useNotebooks';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { Camera, QrCode, Keyboard } from 'lucide-react';
-import Layout from '@/components/Layout';
+import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useNotebooks } from "@/hooks/useNotebooks";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { Camera, QrCode, Keyboard } from "lucide-react";
+import Layout from "@/components/Layout";
+import { Html5Qrcode } from "html5-qrcode";
 
 const RegisterNotebook = () => {
-  const [notebookId, setNotebookId] = useState('');
-  const [nickname, setNickname] = useState('');
+  const [notebookId, setNotebookId] = useState("");
+  const [nickname, setNickname] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [useManualEntry, setUseManualEntry] = useState(false);
   const { registerNotebook, templates, notebooks, userPlan } = useNotebooks();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const qrReaderRef = useRef<HTMLDivElement>(null);
 
-  const handleScan = () => {
+  useEffect(() => {
+    // Cleanup scanner when component unmounts
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(console.error);
+      }
+    };
+  }, []);
+
+  const handleScan = async () => {
     setIsScanning(true);
-    
-    // Simulate QR scanning - in a real app, this would use the camera
-    setTimeout(() => {
-      // Demo: Auto-fill with a sample notebook ID
-      const demoId = `NB001-DEMO${Date.now().toString().slice(-6)}`;
-      setNotebookId(demoId);
-      setNickname('My Study Notebook');
-      setIsScanning(false);
-      
+    // Wait for the next render cycle to ensure the element exists
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    try {
+      // Initialize scanner
+      scannerRef.current = new Html5Qrcode("qr-reader");
+
+      // Get available cameras
+      const devices = await Html5Qrcode.getCameras();
+      if (devices && devices.length) {
+        // Use the back camera if available, otherwise use the first camera
+        const cameraId =
+          devices.find((device) => device.label.toLowerCase().includes("back"))
+            ?.id || devices[0].id;
+
+        // Start scanning
+        await scannerRef.current.start(
+          cameraId,
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+          },
+          onScanSuccess,
+          onScanFailure
+        );
+      } else {
+        throw new Error("No cameras found");
+      }
+    } catch (error) {
+      console.error("Error starting scanner:", error);
       toast({
-        title: "QR Code Detected!",
-        description: "Notebook ID has been filled automatically"
+        title: "Camera Error",
+        description:
+          "Could not access camera. Please ensure camera permissions are granted.",
+        variant: "destructive",
       });
-    }, 2000);
+      setIsScanning(false);
+    }
+  };
+
+  const onScanSuccess = (decodedText: string) => {
+    try {
+      // Parse the URL format: <domain>/register-notebook/<notebookid>
+      const url = new URL(decodedText);
+      const pathParts = url.pathname.split("/");
+      const scannedNotebookId = pathParts[pathParts.length - 1];
+
+      if (scannedNotebookId) {
+        setNotebookId(scannedNotebookId.toUpperCase());
+        setNickname(scannedNotebookId);
+        setIsScanning(false);
+
+        // Stop scanner
+        if (scannerRef.current) {
+          scannerRef.current.stop().catch(console.error);
+        }
+
+        toast({
+          title: "QR Code Detected!",
+          description: "Notebook ID has been filled automatically",
+        });
+      } else {
+        throw new Error("Invalid QR code format");
+      }
+    } catch (error) {
+      toast({
+        title: "Invalid QR Code",
+        description: "Please scan a valid Noteit notebook QR code",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onScanFailure = (error: string) => {
+    // Handle scan failure silently
+    console.warn(`QR Code scan failed: ${error}`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!notebookId || !nickname) {
       toast({
         title: "Missing Information",
         description: "Please provide both notebook ID and nickname",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -56,24 +136,24 @@ const RegisterNotebook = () => {
       toast({
         title: "Limit Reached",
         description: `${userPlan.display_name} allows up to ${userPlan.max_notebooks} notebooks. Upgrade to Pro for unlimited notebooks.`,
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     const success = await registerNotebook(notebookId, nickname);
-    
+
     if (success) {
       toast({
         title: "Notebook Registered!",
-        description: `${nickname} has been added to your account`
+        description: `${nickname} has been added to your account`,
       });
-      navigate('/dashboard');
+      navigate("/dashboard");
     } else {
       toast({
         title: "Registration Failed",
         description: "This notebook is already registered or invalid",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -83,7 +163,9 @@ const RegisterNotebook = () => {
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Card className="animate-scale-in">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Register Your Notebook</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Register Your Notebook
+            </CardTitle>
             <CardDescription>
               Scan the QR code on your notebook cover or enter the ID manually
             </CardDescription>
@@ -115,11 +197,22 @@ const RegisterNotebook = () => {
                 <CardContent className="p-8 text-center">
                   {isScanning ? (
                     <div className="space-y-4">
-                      <div className="w-32 h-32 mx-auto border-4 border-blue-500 border-dashed rounded-lg flex items-center justify-center animate-pulse">
-                        <QrCode className="w-16 h-16 text-blue-500" />
-                      </div>
-                      <p className="text-blue-600 font-medium">Scanning for QR code...</p>
-                      <Button variant="outline" onClick={() => setIsScanning(false)}>
+                      <div
+                        id="qr-reader"
+                        className="w-full max-w-sm mx-auto"
+                        ref={qrReaderRef}
+                      ></div>
+                      <Button
+                        variant="outline"
+                        onClick={async () => {
+                          setIsScanning(false);
+                          if (scannerRef.current) {
+                            await scannerRef.current
+                              .stop()
+                              .catch(console.error);
+                          }
+                        }}
+                      >
                         Cancel
                       </Button>
                     </div>
@@ -129,7 +222,8 @@ const RegisterNotebook = () => {
                         <Camera className="w-16 h-16 text-gray-400" />
                       </div>
                       <p className="text-gray-600">
-                        Position your camera over the QR code on your notebook cover
+                        Position your camera over the QR code on your notebook
+                        cover
                       </p>
                       <Button onClick={handleScan} className="gradient-bg">
                         <Camera className="w-4 h-4 mr-2" />
@@ -178,12 +272,19 @@ const RegisterNotebook = () => {
 
             {/* Templates Preview */}
             <div className="pt-6 border-t">
-              <h3 className="font-semibold text-lg mb-4">Available Notebook Types</h3>
+              <h3 className="font-semibold text-lg mb-4">
+                Available Notebook Types
+              </h3>
               <div className="grid grid-cols-2 gap-3">
                 {templates.slice(0, 4).map((template) => (
-                  <div key={template.id} className="p-3 border rounded-lg text-center">
+                  <div
+                    key={template.id}
+                    className="p-3 border rounded-lg text-center"
+                  >
                     <p className="font-medium text-sm">{template.title}</p>
-                    <p className="text-xs text-gray-500">{template.pages} pages</p>
+                    <p className="text-xs text-gray-500">
+                      {template.pages} pages
+                    </p>
                   </div>
                 ))}
               </div>

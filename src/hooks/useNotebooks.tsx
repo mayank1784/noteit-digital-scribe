@@ -118,7 +118,7 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       .insert({
         id: notebookId,
         user_id: user.id,
-        nickname,
+        nickname: nickname && nickname.length > 0 ? nickname : notebookId,
         category_id: template.category_id,
         title: template.title,
         total_pages: template.pages,
