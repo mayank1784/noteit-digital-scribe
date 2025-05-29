@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
-
+// We have login component
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
