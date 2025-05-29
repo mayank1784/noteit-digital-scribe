@@ -79,10 +79,10 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         .eq('is_active', true)
         .order('sort_order');
 
-      // Load user plan
+      // Load user plan - explicitly select all fields including description
       const { data: planData } = await supabase
         .from('user_plans')
-        .select('*')
+        .select('id, name, display_name, description, is_active, sort_order, max_notebooks, max_notes_per_page, max_file_size_mb, price_monthly, price_yearly, features, created_at')
         .eq('id', user!.plan_id)
         .single();
 
