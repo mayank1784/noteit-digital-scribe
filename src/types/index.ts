@@ -1,3 +1,14 @@
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  plan_id?: string;
+  plan_expires_at?: string;
+  created_at?: string;
+}
+
 export interface RegisteredNotebook {
   id: string;
   user_id: string;

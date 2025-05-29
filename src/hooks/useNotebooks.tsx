@@ -113,10 +113,11 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setNoteTypes(noteTypesData || []);
       setPageGroups(groupsWithPages);
       
-      // Convert the Json features to string[] for our UserPlan type
+      // Convert the database plan data to our UserPlan type, ensuring description is included
       if (planData) {
         const convertedPlan: UserPlan = {
           ...planData,
+          description: planData.description || null,
           features: Array.isArray(planData.features) ? planData.features as string[] : []
         };
         setUserPlan(convertedPlan);
