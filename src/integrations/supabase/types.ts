@@ -184,6 +184,83 @@ export type Database = {
           },
         ]
       }
+      page_group_members: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          page_number: number
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          page_number: number
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          page_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "page_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      page_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          notebook_id: string
+          sort_order: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          notebook_id: string
+          sort_order?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          notebook_id?: string
+          sort_order?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_groups_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "registered_notebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "page_groups_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar: string | null

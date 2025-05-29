@@ -1,65 +1,39 @@
-
-export interface User {
+export interface RegisteredNotebook {
   id: string;
-  email: string;
-  name: string;
-  avatar?: string;
-  plan_id: string;
-  plan_expires_at?: string;
-  created_at: string;
+  user_id: string;
+  nickname: string;
+  category_id: string;
+  title: string;
+  total_pages: number;
+  cover_image: string | null;
+  registered_at: string | null;
+  last_used: string | null;
 }
 
-export interface UserPlan {
+export interface NotebookTemplate {
   id: string;
-  name: string;
-  display_name: string;
-  max_notebooks: number;
-  max_notes_per_page?: number;
-  max_file_size_mb?: number;
-  price_monthly: number;
-  price_yearly: number;
-  features: string[]; // Keep as string[] for our app logic
-  is_active: boolean;
-  sort_order: number;
+  category_id: string;
+  title: string;
+  description: string | null;
+  pages: number;
+  cover_image: string | null;
 }
 
 export interface NotebookCategory {
   id: string;
   name: string;
+  description: string | null;
   color: string;
-  description?: string;
-  is_active: boolean;
-  sort_order: number;
-}
-
-export interface NoteType {
-  id: string;
-  name: string;
-  icon?: string;
-  description?: string;
-  is_active: boolean;
-  max_size_mb?: number;
-  sort_order: number;
-}
-
-export interface RegisteredNotebook {
-  id: string; // Physical notebook ID
-  user_id: string;
-  nickname: string; // User's custom name
-  category_id: string;
-  title: string; // Original template name
-  total_pages: number;
-  registered_at: string;
-  last_used?: string;
-  cover_image?: string;
+  is_active: boolean | null;
+  sort_order: number | null;
 }
 
 export interface NotePage {
-  id: string; // Format: notebookId-pageNumber
+  id: string;
   notebook_id: string;
   page_number: number;
-  last_modified: string;
-  notes?: Note[]; // Added for easier data handling
+  last_modified: string | null;
+  notes: Note[];
 }
 
 export interface Note {
@@ -67,23 +41,51 @@ export interface Note {
   page_id: string;
   type_id: string;
   content: string;
-  timestamp: string;
-  duration?: number; // For voice notes in seconds
-  file_url?: string; // Added for file uploads
-  created_at: string;
+  timestamp: string | null;
+  duration: number | null;
+  file_url: string | null;
 }
 
-export interface NotebookTemplate {
+export interface NoteType {
   id: string;
-  title: string;
-  category_id: string;
-  pages: number;
-  cover_image?: string;
-  description?: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  is_active: boolean | null;
+  sort_order: number | null;
+  max_size_mb: number | null;
 }
 
-export interface QRScanResult {
-  type: 'notebook' | 'page';
-  notebookId: string;
-  pageNumber?: number;
+export interface UserPlan {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string | null;
+  is_active: boolean | null;
+  sort_order: number | null;
+  max_notebooks: number;
+  max_notes_per_page: number | null;
+  max_file_size_mb: number | null;
+  price_monthly: number | null;
+  price_yearly: number | null;
+  features: string[];
+}
+
+export interface PageGroup {
+  id: string;
+  notebook_id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+  sort_order: number;
+  pages: number[]; // Array of page numbers in this group
+}
+
+export interface PageGroupMember {
+  id: string;
+  group_id: string;
+  page_number: number;
+  created_at: string;
 }

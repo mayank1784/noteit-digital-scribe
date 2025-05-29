@@ -1,20 +1,25 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNotebooks } from "@/hooks/useNotebooks";
-import { ArrowLeft, Settings, Trash2, FileText } from "lucide-react";
+import { ArrowLeft, Settings, Trash2, FileText, Users } from "lucide-react";
 import Layout from "@/components/Layout";
+import PageGroupManager from "@/components/PageGroupManager";
 import { useToast } from "@/hooks/use-toast";
 
 const NotebookDetail = () => {
   const { notebookId } = useParams<{ notebookId: string }>();
-  const { getNotebook, categories, deleteNotebook } = useNotebooks();
+  const { getNotebook, categories, deleteNotebook, getNotebookGroups } = useNotebooks();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("pages");
 
   const notebook = notebookId ? getNotebook(notebookId) : undefined;
+  const groups = notebookId ? getNotebookGroups(notebookId) : [];
 
   if (!notebook) {
     return (
@@ -69,6 +74,10 @@ const NotebookDetail = () => {
     { length: notebook.total_pages },
     (_, i) => i + 1
   );
+
+  const getPageGroups = (pageNumber: number) => {
+    return groups.filter(group => group.pages.includes(pageNumber));
+  };
 
   return (
     <Layout title={notebook.nickname}>
@@ -142,31 +151,65 @@ const NotebookDetail = () => {
           </CardContent>
         </Card>
 
-        {/* Page Grid */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">All Pages</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-12 gap-3">
-              {pageGrid.map((pageNumber) => (
-                <Link
-                  key={pageNumber}
-                  to={`/page/${notebook.id}/${pageNumber}`}
-                  className="group"
-                >
-                  <div className="aspect-square bg-white border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-colors flex flex-col items-center justify-center p-2 hover-scale group">
-                    <FileText className="w-6 h-6 text-gray-400 group-hover:text-blue-500 mb-1" />
-                    <span className="text-xs font-medium text-gray-600 group-hover:text-blue-600">
-                      {pageNumber}
-                    </span>
-                    {/* TODO: Show note count indicator */}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Tabs for Pages and Groups */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="pages" className="flex items-center space-x-2">
+              <FileText className="w-4 h-4" />
+              <span>All Pages</span>
+            </TabsTrigger>
+            <TabsTrigger value="groups" className="flex items-center space-x-2">
+              <Users className="w-4 h-4" />
+              <span>Page Groups</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pages" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">All Pages</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-12 gap-3">
+                  {pageGrid.map((pageNumber) => {
+                    const pageGroups = getPageGroups(pageNumber);
+                    return (
+                      <Link
+                        key={pageNumber}
+                        to={`/page/${notebook.id}/${pageNumber}`}
+                        className="group relative"
+                      >
+                        <div className="aspect-square bg-white border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-colors flex flex-col items-center justify-center p-2 hover-scale group">
+                          <FileText className="w-6 h-6 text-gray-400 group-hover:text-blue-500 mb-1" />
+                          <span className="text-xs font-medium text-gray-600 group-hover:text-blue-600">
+                            {pageNumber}
+                          </span>
+                          {pageGroups.length > 0 && (
+                            <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                              {pageGroups.length}
+                            </div>
+                          )}
+                        </div>
+                        {pageGroups.length > 0 && (
+                          <div className="absolute -bottom-6 left-0 right-0 text-center">
+                            <div className="text-xs text-gray-500 truncate">
+                              {pageGroups[0].name}
+                              {pageGroups.length > 1 && ` +${pageGroups.length - 1}`}
+                            </div>
+                          </div>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="groups" className="mt-6">
+            <PageGroupManager notebookId={notebook.id} totalPages={notebook.total_pages} />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );

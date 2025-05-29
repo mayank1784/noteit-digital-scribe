@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { RegisteredNotebook, NotePage, Note, NotebookTemplate, NotebookCategory, NoteType, UserPlan } from '@/types';
+import { RegisteredNotebook, NotePage, Note, NotebookTemplate, NotebookCategory, NoteType, UserPlan, PageGroup } from '@/types';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -9,6 +9,7 @@ interface NotebooksContextType {
   categories: NotebookCategory[];
   noteTypes: NoteType[];
   userPlan: UserPlan | null;
+  pageGroups: PageGroup[];
   registerNotebook: (notebookId: string, nickname: string) => Promise<boolean>;
   deleteNotebook: (notebookId: string) => void;
   getNotebook: (id: string) => RegisteredNotebook | undefined;
@@ -16,6 +17,12 @@ interface NotebooksContextType {
   addNote: (notebookId: string, pageNumber: number, note: { type_id: string; content: string; duration?: number; file_url?: string }) => Promise<void>;
   updateNote: (noteId: string, content: string) => Promise<void>;
   deleteNote: (noteId: string) => Promise<void>;
+  createPageGroup: (notebookId: string, name: string, description?: string) => Promise<PageGroup | null>;
+  updatePageGroup: (groupId: string, name: string, description?: string) => Promise<void>;
+  deletePageGroup: (groupId: string) => Promise<void>;
+  addPagesToGroup: (groupId: string, pageNumbers: number[]) => Promise<void>;
+  removePagesFromGroup: (groupId: string, pageNumbers: number[]) => Promise<void>;
+  getNotebookGroups: (notebookId: string) => PageGroup[];
   isLoading: boolean;
 }
 
@@ -28,6 +35,7 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [categories, setCategories] = useState<NotebookCategory[]>([]);
   const [noteTypes, setNoteTypes] = useState<NoteType[]>([]);
   const [userPlan, setUserPlan] = useState<UserPlan | null>(null);
+  const [pageGroups, setPageGroups] = useState<PageGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -36,6 +44,7 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } else {
       setNotebooks([]);
       setUserPlan(null);
+      setPageGroups([]);
       setIsLoading(false);
     }
   }, [user]);
@@ -77,10 +86,32 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         .eq('id', user!.plan_id)
         .single();
 
+      // Load page groups
+      const { data: pageGroupsData } = await supabase
+        .from('page_groups')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('sort_order');
+
+      // Load page group members
+      const { data: groupMembersData } = await supabase
+        .from('page_group_members')
+        .select('*');
+
+      // Combine groups with their pages
+      const groupsWithPages: PageGroup[] = (pageGroupsData || []).map(group => ({
+        ...group,
+        pages: (groupMembersData || [])
+          .filter(member => member.group_id === group.id)
+          .map(member => member.page_number)
+          .sort((a, b) => a - b)
+      }));
+
       setNotebooks(notebooksData || []);
       setTemplates(templatesData || []);
       setCategories(categoriesData || []);
       setNoteTypes(noteTypesData || []);
+      setPageGroups(groupsWithPages);
       
       // Convert the Json features to string[] for our UserPlan type
       if (planData) {
@@ -262,6 +293,123 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const createPageGroup = async (notebookId: string, name: string, description?: string): Promise<PageGroup | null> => {
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('page_groups')
+      .insert({
+        notebook_id: notebookId,
+        user_id: user.id,
+        name,
+        description,
+        sort_order: pageGroups.filter(g => g.notebook_id === notebookId).length
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating page group:', error);
+      return null;
+    }
+
+    const newGroup: PageGroup = { ...data, pages: [] };
+    setPageGroups(prev => [...prev, newGroup]);
+    return newGroup;
+  };
+
+  const updatePageGroup = async (groupId: string, name: string, description?: string) => {
+    const { error } = await supabase
+      .from('page_groups')
+      .update({ 
+        name, 
+        description,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', groupId);
+
+    if (error) {
+      console.error('Error updating page group:', error);
+      return;
+    }
+
+    setPageGroups(prev => prev.map(group => 
+      group.id === groupId 
+        ? { ...group, name, description, updated_at: new Date().toISOString() }
+        : group
+    ));
+  };
+
+  const deletePageGroup = async (groupId: string) => {
+    const { error } = await supabase
+      .from('page_groups')
+      .delete()
+      .eq('id', groupId);
+
+    if (error) {
+      console.error('Error deleting page group:', error);
+      return;
+    }
+
+    setPageGroups(prev => prev.filter(group => group.id !== groupId));
+  };
+
+  const addPagesToGroup = async (groupId: string, pageNumbers: number[]) => {
+    if (!pageNumbers.length) return;
+
+    // Remove duplicates and filter out pages already in the group
+    const group = pageGroups.find(g => g.id === groupId);
+    if (!group) return;
+
+    const newPages = pageNumbers.filter(pageNum => !group.pages.includes(pageNum));
+    if (!newPages.length) return;
+
+    const insertData = newPages.map(pageNumber => ({
+      group_id: groupId,
+      page_number: pageNumber
+    }));
+
+    const { error } = await supabase
+      .from('page_group_members')
+      .insert(insertData);
+
+    if (error) {
+      console.error('Error adding pages to group:', error);
+      return;
+    }
+
+    setPageGroups(prev => prev.map(group => 
+      group.id === groupId 
+        ? { ...group, pages: [...group.pages, ...newPages].sort((a, b) => a - b) }
+        : group
+    ));
+  };
+
+  const removePagesFromGroup = async (groupId: string, pageNumbers: number[]) => {
+    if (!pageNumbers.length) return;
+
+    const { error } = await supabase
+      .from('page_group_members')
+      .delete()
+      .eq('group_id', groupId)
+      .in('page_number', pageNumbers);
+
+    if (error) {
+      console.error('Error removing pages from group:', error);
+      return;
+    }
+
+    setPageGroups(prev => prev.map(group => 
+      group.id === groupId 
+        ? { ...group, pages: group.pages.filter(pageNum => !pageNumbers.includes(pageNum)) }
+        : group
+    ));
+  };
+
+  const getNotebookGroups = (notebookId: string): PageGroup[] => {
+    return pageGroups.filter(group => group.notebook_id === notebookId);
+  };
+
   return (
     <NotebooksContext.Provider value={{
       notebooks,
@@ -269,6 +417,7 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       categories,
       noteTypes,
       userPlan,
+      pageGroups,
       registerNotebook,
       deleteNotebook,
       getNotebook,
@@ -276,6 +425,12 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       addNote,
       updateNote,
       deleteNote,
+      createPageGroup,
+      updatePageGroup,
+      deletePageGroup,
+      addPagesToGroup,
+      removePagesFromGroup,
+      getNotebookGroups,
       isLoading
     }}>
       {children}
