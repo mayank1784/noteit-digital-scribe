@@ -19,13 +19,17 @@ import { Html5Qrcode } from "html5-qrcode";
 
 const RegisterNotebook = () => {
   const [searchParams] = useSearchParams();
-  const initialNotebookId = searchParams.get('notebookId') || '';
-  const initialNickname = searchParams.get('nickname') || '';
-  
-  const [notebookId, setNotebookId] = useState(initialNotebookId);
-  const [nickname, setNickname] = useState(initialNickname);
+  const initialNotebookId = searchParams.get("notebookId") || "";
+  const initialNickname = searchParams.get("nickname") || "";
+
+  const [notebookId, setNotebookId] = useState(initialNotebookId.toUpperCase());
+  const [nickname, setNickname] = useState(
+    initialNickname.length > 0
+      ? initialNickname
+      : initialNotebookId.toUpperCase()
+  );
   const [isScanning, setIsScanning] = useState(false);
-  const [useManualEntry, setUseManualEntry] = useState(false);
+  const [useManualEntry, setUseManualEntry] = useState(!initialNotebookId);
   const { registerNotebook, templates, notebooks, userPlan } = useNotebooks();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -135,6 +139,17 @@ const RegisterNotebook = () => {
       return;
     }
 
+    // Validate notebook ID format
+    if (!/^[A-Z0-9-]+$/.test(notebookId)) {
+      toast({
+        title: "Invalid Notebook ID",
+        description:
+          "Notebook ID should only contain uppercase letters, numbers, and hyphens",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check if user has reached limit
     if (user && userPlan && notebooks.length >= userPlan.max_notebooks) {
       toast({
@@ -154,6 +169,7 @@ const RegisterNotebook = () => {
       });
       navigate("/dashboard");
     } else {
+      console.log("registartf failed");
       toast({
         title: "Registration Failed",
         description: "This notebook is already registered or invalid",

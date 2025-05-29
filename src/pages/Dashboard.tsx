@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,11 +9,32 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNotebooks } from '@/hooks/useNotebooks';
 import { Plus, BookOpen, Trash2, Calendar, QrCode } from 'lucide-react';
 import Layout from '@/components/Layout';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { notebooks, categories, userPlan, deleteNotebook } = useNotebooks();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (user) {
+      const pendingNotebookId = sessionStorage.getItem("pendingNotebookId");
+      const authSource = sessionStorage.getItem("authSource");
 
+      if (pendingNotebookId && authSource === "notebook-registration") {
+        // Clear the stored data
+        sessionStorage.removeItem("pendingNotebookId");
+        sessionStorage.removeItem("authSource");
+
+        // Redirect to notebook registration
+        navigate(
+          `/register-notebook?notebookId=${pendingNotebookId}&nickname=${pendingNotebookId}`,
+          { replace: true }
+        );
+      } 
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
+    }, [user, navigate]);
   const getCategoryColor = (categoryId: string) => {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return 'bg-gray-100 text-gray-800';

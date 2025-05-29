@@ -1,17 +1,18 @@
-
-import React from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useNotebooks } from '@/hooks/useNotebooks';
-import { ArrowLeft, Settings, Trash2, FileText } from 'lucide-react';
-import Layout from '@/components/Layout';
+import React from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useNotebooks } from "@/hooks/useNotebooks";
+import { ArrowLeft, Settings, Trash2, FileText } from "lucide-react";
+import Layout from "@/components/Layout";
+import { useToast } from "@/hooks/use-toast";
 
 const NotebookDetail = () => {
   const { notebookId } = useParams<{ notebookId: string }>();
   const { getNotebook, categories, deleteNotebook } = useNotebooks();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const notebook = notebookId ? getNotebook(notebookId) : undefined;
 
@@ -19,8 +20,12 @@ const NotebookDetail = () => {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Notebook Not Found</h1>
-          <p className="text-gray-600 mt-2">The requested notebook could not be found.</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Notebook Not Found
+          </h1>
+          <p className="text-gray-600 mt-2">
+            The requested notebook could not be found.
+          </p>
           <Link to="/dashboard">
             <Button className="mt-4">Back to Dashboard</Button>
           </Link>
@@ -31,29 +36,39 @@ const NotebookDetail = () => {
 
   const getCategoryColor = (categoryId: string) => {
     const colors = {
-      student: 'bg-purple-100 text-purple-800',
-      business: 'bg-gray-100 text-gray-800',
-      creative: 'bg-pink-100 text-pink-800',
-      journal: 'bg-teal-100 text-teal-800',
-      planner: 'bg-red-100 text-red-800'
+      student: "bg-purple-100 text-purple-800",
+      business: "bg-gray-100 text-gray-800",
+      creative: "bg-pink-100 text-pink-800",
+      journal: "bg-teal-100 text-teal-800",
+      planner: "bg-red-100 text-red-800",
     };
-    return colors[categoryId as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return (
+      colors[categoryId as keyof typeof colors] || "bg-gray-100 text-gray-800"
+    );
   };
 
   const getCategoryName = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
+    const category = categories.find((c) => c.id === categoryId);
     return category?.name || categoryId;
   };
 
   const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this notebook? All notes will be lost.')) {
+    if (
+      confirm(
+        "Are you sure you want to delete this notebook? All notes will be lost."
+      )
+    ) {
       deleteNotebook(notebook.id);
-      navigate('/dashboard');
+      toast({ title: "Notebook Deleted" });
+      navigate("/dashboard");
     }
   };
 
   // Generate page grid (6x8 = 48 pages typical)
-  const pageGrid = Array.from({ length: notebook.total_pages }, (_, i) => i + 1);
+  const pageGrid = Array.from(
+    { length: notebook.total_pages },
+    (_, i) => i + 1
+  );
 
   return (
     <Layout title={notebook.nickname}>
@@ -68,7 +83,9 @@ const NotebookDetail = () => {
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{notebook.nickname}</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {notebook.nickname}
+              </h1>
               <div className="flex items-center space-x-3 mt-1">
                 <Badge className={getCategoryColor(notebook.category_id)}>
                   {getCategoryName(notebook.category_id)}
@@ -77,13 +94,18 @@ const NotebookDetail = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Button variant="outline" size="sm">
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDelete} className="text-red-600 hover:text-red-700">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDelete}
+              className="text-red-600 hover:text-red-700"
+            >
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
@@ -103,15 +125,19 @@ const NotebookDetail = () => {
                 placeholder="Page number"
                 className="px-3 py-2 border border-gray-300 rounded-md w-32"
                 onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    const pageNum = parseInt((e.target as HTMLInputElement).value);
+                  if (e.key === "Enter") {
+                    const pageNum = parseInt(
+                      (e.target as HTMLInputElement).value
+                    );
                     if (pageNum >= 1 && pageNum <= notebook.total_pages) {
                       navigate(`/page/${notebook.id}/${pageNum}`);
                     }
                   }
                 }}
               />
-              <span className="text-gray-600">of {notebook.total_pages} pages</span>
+              <span className="text-gray-600">
+                of {notebook.total_pages} pages
+              </span>
             </div>
           </CardContent>
         </Card>
