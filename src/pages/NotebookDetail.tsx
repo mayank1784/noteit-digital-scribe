@@ -222,9 +222,9 @@ const NotebookDetail = () => {
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {groups.map((group) => (
-                      <Link
+                      <div
                         key={group.id}
-                        to={`/${group.notebook_id}/group/${group.id}/${group.pages[0]}`}
+                        // to={`/${group.notebook_id}/group/${group.id}/${group.pages[0]}`}
                         className="group"
                       >
                         <Card className="hover-scale">
@@ -256,9 +256,17 @@ const NotebookDetail = () => {
                                 </Badge>
                               )}
                             </div>
+                            <Link
+                              to={`/${group.notebook_id}/group/${group.id}/${group.pages[0]}`}
+                              className="flex-1"
+                            >
+                              <Button variant="outline" className="w-full mt-5">
+                                Open
+                              </Button>
+                            </Link>
                           </CardContent>
                         </Card>
-                      </Link>
+                      </div>
                     ))}
                   </div>
                 </CardContent>
