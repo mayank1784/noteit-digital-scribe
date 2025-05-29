@@ -55,7 +55,16 @@ const Register = () => {
         title: "Registration Successful!",
         description: "Please check your email to confirm your account before signing in."
       });
-      navigate('/login');
+      
+      // Check if there's a pending notebook ID from QR scan
+      const pendingNotebookId = localStorage.getItem('pendingNotebookId');
+      if (pendingNotebookId) {
+        localStorage.removeItem('pendingNotebookId');
+        // Redirect to login with notebook info for after they confirm email
+        navigate(`/login?redirect=${encodeURIComponent(`/register-notebook?notebookId=${pendingNotebookId}&nickname=${pendingNotebookId}`)}`);
+      } else {
+        navigate('/login');
+      }
     } else {
       toast({
         title: "Registration Failed",

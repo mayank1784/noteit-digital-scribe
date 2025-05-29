@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,8 +18,12 @@ import Layout from "@/components/Layout";
 import { Html5Qrcode } from "html5-qrcode";
 
 const RegisterNotebook = () => {
-  const [notebookId, setNotebookId] = useState("");
-  const [nickname, setNickname] = useState("");
+  const [searchParams] = useSearchParams();
+  const initialNotebookId = searchParams.get('notebookId') || '';
+  const initialNickname = searchParams.get('nickname') || '';
+  
+  const [notebookId, setNotebookId] = useState(initialNotebookId);
+  const [nickname, setNickname] = useState(initialNickname);
   const [isScanning, setIsScanning] = useState(false);
   const [useManualEntry, setUseManualEntry] = useState(false);
   const { registerNotebook, templates, notebooks, userPlan } = useNotebooks();

@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +11,9 @@ import Layout from '@/components/Layout';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
+  
   const { login, loginWithGoogle, isLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -35,7 +37,13 @@ const Login = () => {
         title: "Welcome back!",
         description: "Successfully logged in to your account"
       });
-      navigate('/dashboard');
+      
+      // Redirect to the specified URL or dashboard
+      if (redirectUrl) {
+        navigate(decodeURIComponent(redirectUrl));
+      } else {
+        navigate('/dashboard');
+      }
     } else {
       toast({
         title: "Login Failed",

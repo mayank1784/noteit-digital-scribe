@@ -9,6 +9,7 @@ import { NotebooksProvider } from "./hooks/useNotebooks";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import QRRegister from "./pages/QRRegister";
 import Dashboard from "./pages/Dashboard";
 import RegisterNotebook from "./pages/RegisterNotebook";
 import NotebookDetail from "./pages/NotebookDetail";
