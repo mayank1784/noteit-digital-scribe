@@ -71,7 +71,6 @@ export interface UserPlan {
   id: string;
   name: string;
   display_name: string;
-  description: string | null;
   is_active: boolean | null;
   sort_order: number | null;
   max_notebooks: number;

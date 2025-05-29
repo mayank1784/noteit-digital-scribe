@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import RegisterNotebook from "./pages/RegisterNotebook";
 import NotebookDetail from "./pages/NotebookDetail";
 import PageInterface from "./pages/PageInterface";
+import GroupPageInterface from "./pages/GroupPageInterface";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -94,6 +95,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <PageInterface />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/:notebookId/group/:groupId/:pageNumber"
+      element={
+        <ProtectedRoute>
+          <GroupPageInterface />
         </ProtectedRoute>
       }
     />

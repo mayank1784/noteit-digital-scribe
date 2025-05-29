@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 
 const NotebookDetail = () => {
   const { notebookId } = useParams<{ notebookId: string }>();
-  const { getNotebook, categories, deleteNotebook, getNotebookGroups } = useNotebooks();
+  const { getNotebook, categories, deleteNotebook, getNotebookGroups } =
+    useNotebooks();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("pages");
@@ -76,7 +76,7 @@ const NotebookDetail = () => {
   );
 
   const getPageGroups = (pageNumber: number) => {
-    return groups.filter(group => group.pages.includes(pageNumber));
+    return groups.filter((group) => group.pages.includes(pageNumber));
   };
 
   return (
@@ -194,7 +194,8 @@ const NotebookDetail = () => {
                           <div className="absolute -bottom-6 left-0 right-0 text-center">
                             <div className="text-xs text-gray-500 truncate">
                               {pageGroups[0].name}
-                              {pageGroups.length > 1 && ` +${pageGroups.length - 1}`}
+                              {pageGroups.length > 1 &&
+                                ` +${pageGroups.length - 1}`}
                             </div>
                           </div>
                         )}
@@ -207,7 +208,62 @@ const NotebookDetail = () => {
           </TabsContent>
 
           <TabsContent value="groups" className="mt-6">
-            <PageGroupManager notebookId={notebook.id} totalPages={notebook.total_pages} />
+            <div className="space-y-6">
+              <PageGroupManager
+                notebookId={notebook.id}
+                totalPages={notebook.total_pages}
+              />
+
+              {/* Group Pages */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Group Pages</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {groups.map((group) => (
+                      <Link
+                        key={group.id}
+                        to={`/${group.notebook_id}/group/${group.id}/${group.pages[0]}`}
+                        className="group"
+                      >
+                        <Card className="hover-scale">
+                          <CardHeader>
+                            <CardTitle className="text-base flex items-center justify-between">
+                              <span className="truncate">{group.name}</span>
+                              <Badge variant="outline" className="ml-2">
+                                {group.pages.length} pages
+                              </Badge>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-sm text-gray-600 line-clamp-2">
+                              {group.description || "No description"}
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {group.pages.slice(0, 3).map((pageNum) => (
+                                <Badge
+                                  key={pageNum}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
+                                  Page {pageNum}
+                                </Badge>
+                              ))}
+                              {group.pages.length > 3 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  +{group.pages.length - 3} more
+                                </Badge>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
