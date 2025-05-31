@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -14,10 +15,12 @@ import {
   Play,
   Pause,
   Download,
+  Edit,
 } from "lucide-react";
 import Layout from "@/components/Layout";
 import AddNoteModal from "@/components/AddNoteModal";
-import { NotePage } from "@/types";
+import EditNoteModal from "@/components/EditNoteModal";
+import { NotePage, Note } from "@/types";
 
 const GroupPageInterface = () => {
   const { notebookId, groupId, pageNumber } = useParams<{
@@ -28,6 +31,7 @@ const GroupPageInterface = () => {
   const { getNotebookGroup, getPage, deleteNote } = useNotebooks();
   const navigate = useNavigate();
   const [showAddNote, setShowAddNote] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [page, setPage] = useState<NotePage | null>(null);
   const [loading, setLoading] = useState(true);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
@@ -122,6 +126,15 @@ const GroupPageInterface = () => {
       const pageData = await getPage(group.notebook_id, currentPageNum);
       setPage(pageData);
     }
+  };
+
+  const handleNoteUpdated = async () => {
+    // Reload page data after updating a note
+    if (groupId && group) {
+      const pageData = await getPage(group.notebook_id, currentPageNum);
+      setPage(pageData);
+    }
+    setEditingNote(null);
   };
 
   const playPauseAudio = (noteId: string, audioUrl: string) => {
@@ -294,6 +307,14 @@ const GroupPageInterface = () => {
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => setEditingNote(note)}
+                          className="text-blue-600 hover:text-blue-700 h-6 w-6 p-0"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleDeleteNote(note.id)}
                           className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
                         >
@@ -366,6 +387,16 @@ const GroupPageInterface = () => {
             onNoteAdded={handleNoteAdded}
             notebookId={group.notebook_id}
             pageNumber={currentPageNum}
+          />
+        )}
+
+        {/* Edit Note Modal */}
+        {editingNote && (
+          <EditNoteModal
+            isOpen={!!editingNote}
+            onClose={() => setEditingNote(null)}
+            note={editingNote}
+            onNoteUpdated={handleNoteUpdated}
           />
         )}
       </div>

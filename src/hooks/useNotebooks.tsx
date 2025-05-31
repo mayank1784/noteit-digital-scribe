@@ -11,7 +11,6 @@ import {
 } from "@/types";
 import { useAuth } from "./useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { group } from "console";
 
 interface NotebooksContextType {
   notebooks: RegisteredNotebook[];
@@ -114,7 +113,7 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({
         .eq("is_active", true)
         .order("sort_order");
 
-      // Load user plan - explicitly select all fields including description
+      // Load user plan - only select existing fields
       const { data: planData } = await supabase
         .from("user_plans")
         .select(
@@ -152,7 +151,7 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({
       setNoteTypes(noteTypesData || []);
       setPageGroups(groupsWithPages);
 
-      // Convert the database plan data to our UserPlan type, ensuring description is included
+      // Convert the database plan data to our UserPlan type
       if (planData) {
         const convertedPlan: UserPlan = {
           ...planData,
@@ -323,7 +322,10 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({
       .eq("id", pageId);
   };
 
-  const updateNote = async (noteId: string, content: string) => {
+  const updateNote = async (
+    noteId: string,
+    content: string,
+  ) => {
     const { error } = await supabase
       .from("notes")
       .update({ content })

@@ -4,16 +4,18 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNotebooks } from '@/hooks/useNotebooks';
-import { ArrowLeft, ArrowRight, Plus, Trash2, Camera, Mic, FileText, Play, Pause, Download } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Trash2, Camera, Mic, FileText, Play, Pause, Download, Edit } from 'lucide-react';
 import Layout from '@/components/Layout';
 import AddNoteModal from '@/components/AddNoteModal';
-import { NotePage } from '@/types';
+import EditNoteModal from '@/components/EditNoteModal';
+import { NotePage, Note } from '@/types';
 
 const PageInterface = () => {
   const { notebookId, pageNumber } = useParams<{ notebookId: string; pageNumber: string }>();
   const { getNotebook, getPage, deleteNote } = useNotebooks();
   const navigate = useNavigate();
   const [showAddNote, setShowAddNote] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [page, setPage] = useState<NotePage | null>(null);
   const [loading, setLoading] = useState(true);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
@@ -96,6 +98,15 @@ const PageInterface = () => {
       const pageData = await getPage(notebookId, currentPageNum);
       setPage(pageData);
     }
+  };
+
+  const handleNoteUpdated = async () => {
+    // Reload page data after updating a note
+    if (notebookId) {
+      const pageData = await getPage(notebookId, currentPageNum);
+      setPage(pageData);
+    }
+    setEditingNote(null);
   };
 
   const playPauseAudio = (noteId: string, audioUrl: string) => {
@@ -233,6 +244,14 @@ const PageInterface = () => {
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => setEditingNote(note)}
+                          className="text-blue-600 hover:text-blue-700 h-6 w-6 p-0"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleDeleteNote(note.id)}
                           className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
                         >
@@ -337,6 +356,16 @@ const PageInterface = () => {
           pageNumber={currentPageNum}
           onNoteAdded={handleNoteAdded}
         />
+
+        {/* Edit Note Modal */}
+        {editingNote && (
+          <EditNoteModal
+            isOpen={!!editingNote}
+            onClose={() => setEditingNote(null)}
+            note={editingNote}
+            onNoteUpdated={handleNoteUpdated}
+          />
+        )}
       </div>
     </Layout>
   );
