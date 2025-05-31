@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -42,7 +41,8 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "Roboto", sans-serif;
     /* Prevent zoom on iOS when focusing inputs */
     -webkit-text-size-adjust: 100%;
     /* Improve touch scrolling */
@@ -53,15 +53,15 @@
   ::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   ::-webkit-scrollbar-track {
     @apply bg-gray-100;
   }
-  
+
   ::-webkit-scrollbar-thumb {
     @apply bg-gray-300 rounded-full;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-400;
   }
@@ -77,7 +77,7 @@
     select {
       font-size: 16px !important;
     }
-    
+
     /* Improve tap targets */
     button,
     a,
@@ -90,17 +90,17 @@
 
 @layer components {
   .gradient-bg {
-    background: linear-gradient(135deg, #3B82F6 0%, #10B981 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
   }
-  
+
   .glass-card {
     @apply backdrop-blur-sm bg-white/80 border border-white/20;
   }
-  
+
   .hover-scale {
     @apply transition-transform duration-200;
   }
-  
+
   /* Only apply hover effects on non-touch devices */
   @media (hover: hover) {
     .hover-scale:hover {
@@ -134,7 +134,7 @@
     /* Hide the default browser UI elements */
     -webkit-app-region: no-drag;
   }
-  
+
   /* Adjust for status bar on mobile devices */
   .app-header {
     padding-top: env(safe-area-inset-top);
