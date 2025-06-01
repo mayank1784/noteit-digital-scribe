@@ -52,7 +52,8 @@ export interface Note {
   page_id: string;
   type_id: string;
   content: string;
-  timestamp: string | null;
+  created_at: string | null;
+  updated_at: string | null;
   duration: number | null;
   file_url: string | null;
 }

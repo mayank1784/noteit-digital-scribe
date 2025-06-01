@@ -11,6 +11,7 @@ import {
 } from "@/types";
 import { useAuth } from "./useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { deleteFile } from "@/utils/fileUpload";
 
 interface NotebooksContextType {
   notebooks: RegisteredNotebook[];
@@ -33,7 +34,11 @@ interface NotebooksContextType {
       file_url?: string;
     }
   ) => Promise<void>;
-  updateNote: (noteId: string, content: string) => Promise<void>;
+  updateNote: (
+    noteId: string,
+    content: string,
+    fileUrl?: string | null
+  ) => Promise<void>;
   deleteNote: (noteId: string) => Promise<void>;
   createPageGroup: (
     notebookId: string,
@@ -247,7 +252,7 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({
       .from("notes")
       .select("*")
       .eq("page_id", pageId)
-      .order("timestamp", { ascending: true });
+      .order("created_at", { ascending: true });
 
     if (existingPage) {
       return {
@@ -325,22 +330,113 @@ export const NotebooksProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateNote = async (
     noteId: string,
     content: string,
+    fileUrl?: string | null
   ) => {
+    // First get the current note to check if it has a file
+    const { data: currentNote } = await supabase
+      .from("notes")
+      .select("file_url, type_id")
+      .eq("id", noteId)
+      .single();
+
+    // Update the note with new content and file URL
+    if (!currentNote) return;
     const { error } = await supabase
       .from("notes")
-      .update({ content })
+      .update({
+        content: content,
+        file_url: fileUrl || null,
+      })
       .eq("id", noteId);
 
     if (error) {
       console.error("Error updating note:", error);
     }
   };
-
   const deleteNote = async (noteId: string) => {
-    const { error } = await supabase.from("notes").delete().eq("id", noteId);
+    let fileToDelete: { url: string; type: "voice" | "photo" } | null = null;
 
-    if (error) {
-      console.error("Error deleting note:", error);
+    try {
+      // 1. Get note details
+      const { data: currentNote, error: selectError } = await supabase
+        .from("notes")
+        .select("file_url, type_id")
+        .eq("id", noteId)
+        .single();
+
+      if (selectError) {
+        if (selectError.code === "PGRST116") {
+          // No rows found
+          console.warn(`Note with ID ${noteId} not found.`);
+          return; // Exit if note doesn't exist
+        }
+        throw new Error(`Error fetching note: ${selectError.message}`);
+      }
+
+      // Check if currentNote is null (e.g., if .single() didn't find a record)
+      if (!currentNote) {
+        console.warn(`Note with ID ${noteId} not found.`);
+        return;
+      }
+
+      console.log(JSON.stringify(currentNote));
+
+      // 2. Prepare for file deletion if applicable
+      if (
+        currentNote.file_url &&
+        (currentNote.type_id === "voice" || currentNote.type_id === "photo")
+      ) {
+        if (currentNote.type_id === "voice") {
+          fileToDelete = { url: currentNote.file_url, type: "voice" };
+        } else {
+          fileToDelete = { url: currentNote.file_url, type: "photo" };
+        }
+      }
+
+      // 3. Delete the note from the database
+      const { error: deleteNoteError } = await supabase
+        .from("notes")
+        .delete()
+        .eq("id", noteId);
+
+      if (deleteNoteError) {
+        throw new Error(
+          `Error deleting note from DB: ${deleteNoteError.message}`
+        );
+      }
+      console.log(`Note with ID ${noteId} deleted from database.`);
+
+      // 4. If note deletion was successful, proceed with file deletion
+      if (fileToDelete) {
+        try {
+          if (fileToDelete.type === "voice") {
+            await deleteFile(fileToDelete.url, "voice-recordings");
+          } else {
+            await deleteFile(fileToDelete.url, "photos");
+          }
+          console.log(
+            `Associated file for note ${noteId} successfully deleted.`
+          );
+        } catch (fileDeleteError) {
+          // Log the file deletion error but don't re-throw, as the note is already deleted.
+          // You might want to implement a retry mechanism or a dead-letter queue here.
+          console.error(
+            `Warning: Could not delete associated file for note ${noteId}. File URL: ${fileToDelete.url}, Type: ${fileToDelete.type}. Error:`,
+            fileDeleteError
+          );
+        }
+      }
+    } catch (error) {
+      // No 'any' here
+      if (error instanceof Error) {
+        console.error("Transaction failed:", error.message);
+      } else {
+        console.error("An unknown error occurred:", error);
+      }
+      // If you were to implement a *true* rollback, this is where you'd re-insert the note
+      // if the file deletion failed *after* the note was deleted.
+      // However, in this client-side transaction, it's more about ensuring
+      // the note is deleted, and then attempting to clean up the file.
     }
   };
 
