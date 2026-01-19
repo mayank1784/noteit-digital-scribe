@@ -287,8 +287,8 @@ const GroupPageInterface = () => {
             page.notes
               .sort(
                 (a, b) =>
-                  new Date(b.timestamp).getTime() -
-                  new Date(a.timestamp).getTime()
+                  new Date(b.created_at || '').getTime() -
+                  new Date(a.created_at || '').getTime()
               )
               .map((note) => (
                 <Card key={note.id} className="hover-scale">
@@ -302,7 +302,7 @@ const GroupPageInterface = () => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="text-xs text-gray-500 hidden sm:inline">
-                          {formatTimestamp(note.timestamp)}
+                          {formatTimestamp(note.created_at || '')}
                         </span>
                         <Button
                           variant="ghost"
@@ -323,7 +323,7 @@ const GroupPageInterface = () => {
                       </div>
                     </div>
                     <div className="text-xs text-gray-500 sm:hidden">
-                      {formatTimestamp(note.timestamp)}
+                      {formatTimestamp(note.created_at || '')}
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
