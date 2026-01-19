@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,15 +12,15 @@ import {
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import Layout from "@/components/Layout";
-// We have login component
+import noteitLogo from '@/assets/noteit-logo.png';
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [searchParams] = useSearchParams();
   const redirectUrl = searchParams.get("redirect");
 
-  const { login, loginWithGoogle, isLoading, user } = useAuth();
+  const { login, loginWithGoogle, isLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -44,7 +44,6 @@ const Login = () => {
         description: "Successfully logged in to your account",
       });
 
-      // Redirect to the specified URL or dashboard
       if (redirectUrl) {
         navigate(decodeURIComponent(redirectUrl));
       } else {
@@ -69,60 +68,72 @@ const Login = () => {
         variant: "destructive",
       });
     }
-    // Note: For successful Google login, user will be redirected automatically
-    // The redirect will be handled by the auth state change in useEffect
   };
 
   return (
-    <Layout>
-      <div className="min-h-screen flex items-center justify-center py-12 px-4">
-        <Card className="w-full max-w-md animate-scale-in">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-            <CardDescription>
-              Sign in to your Noteit.digital account
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12">
+      {/* Background gradient effect */}
+      <div className="fixed inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 pointer-events-none" />
+      
+      <div className="relative z-10 w-full max-w-md">
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <Link to="/">
+            <img src={noteitLogo} alt="Noteit" className="h-16 w-auto" />
+          </Link>
+        </div>
+
+        <Card className="border-border/50 bg-card/80 backdrop-blur-xl shadow-2xl rounded-2xl animate-scale-in">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-2xl font-bold text-foreground">
+              Welcome Back
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Sign in to your Noteit account
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-foreground">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className="bg-secondary/50 border-border/50 focus:border-primary rounded-xl h-12"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-foreground">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="bg-secondary/50 border-border/50 focus:border-primary rounded-xl h-12"
                   required
                 />
               </div>
 
               <Button
                 type="submit"
-                className="w-full gradient-bg"
+                className="w-full gradient-bg text-primary-foreground rounded-xl h-12 font-semibold shadow-glow-sm hover:shadow-glow transition-all duration-300"
                 disabled={isLoading}
               >
                 {isLoading ? "Signing In..." : "Sign In"}
               </Button>
 
-              <div className="relative">
+              <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+                  <span className="w-full border-t border-border/50" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-muted-foreground">
+                  <span className="bg-card px-3 text-muted-foreground">
                     Or continue with
                   </span>
                 </div>
@@ -130,12 +141,12 @@ const Login = () => {
 
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full rounded-xl h-12 border-border/50 bg-secondary/30 hover:bg-secondary/50 transition-all"
                 type="button"
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
               >
-                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -158,7 +169,7 @@ const Login = () => {
             </form>
 
             <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
                 <Link
                   to="/register"
@@ -171,7 +182,7 @@ const Login = () => {
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </div>
   );
 };
 

@@ -1,52 +1,45 @@
-
-import React from 'react';
-import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotebooks } from '@/hooks/useNotebooks';
-import { Plus, BookOpen, Trash2, Calendar, QrCode } from 'lucide-react';
+import { Plus, BookOpen, Trash2, Calendar, QrCode, Sparkles } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { notebooks, categories, userPlan, deleteNotebook } = useNotebooks();
   const navigate = useNavigate();
+
   useEffect(() => {
     if (user) {
       const pendingNotebookId = sessionStorage.getItem("pendingNotebookId");
       const authSource = sessionStorage.getItem("authSource");
 
       if (pendingNotebookId && authSource === "notebook-registration") {
-        // Clear the stored data
         sessionStorage.removeItem("pendingNotebookId");
         sessionStorage.removeItem("authSource");
-
-        // Redirect to notebook registration
         navigate(
           `/register-notebook?notebookId=${pendingNotebookId}&nickname=${pendingNotebookId}`,
           { replace: true }
         );
-      } 
-      } else {
-        navigate("/dashboard", { replace: true });
       }
-    }, [user, navigate]);
-  const getCategoryColor = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
-    if (!category) return 'bg-gray-100 text-gray-800';
-    
-    const colors = {
-      student: 'bg-purple-100 text-purple-800',
-      business: 'bg-gray-100 text-gray-800',
-      creative: 'bg-pink-100 text-pink-800',
-      journal: 'bg-teal-100 text-teal-800',
-      planner: 'bg-red-100 text-red-800'
+    } else {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
+
+  const getCategoryGradient = (categoryId: string) => {
+    const gradients: Record<string, string> = {
+      student: 'notebook-gradient-student',
+      business: 'notebook-gradient-business',
+      creative: 'notebook-gradient-creative',
+      journal: 'notebook-gradient-journal',
+      planner: 'notebook-gradient-planner'
     };
-    return colors[categoryId as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return gradients[categoryId] || 'notebook-gradient-business';
   };
 
   const getCategoryName = (categoryId: string) => {
@@ -64,48 +57,48 @@ const Dashboard = () => {
 
   const maxNotebooks = userPlan?.max_notebooks || 5;
   const planName = userPlan?.display_name || 'Free Plan';
+  const usagePercent = (notebooks.length / maxNotebooks) * 100;
 
   return (
     <Layout title="Dashboard">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Notebooks</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-3xl font-bold text-foreground">My Notebooks</h1>
+            <p className="text-muted-foreground mt-1">
               {notebooks.length} of {maxNotebooks} notebooks registered
             </p>
           </div>
           <Link to="/register-notebook">
-            <Button className="gradient-bg">
+            <Button className="gradient-bg text-primary-foreground rounded-xl shadow-glow-sm hover:shadow-glow transition-all">
               <Plus className="w-4 h-4 mr-2" />
               Register Notebook
             </Button>
           </Link>
         </div>
 
-        {/* Usage Indicator */}
-        <Card className="mb-8">
+        {/* Usage Card */}
+        <Card className="mb-8 bg-card/50 backdrop-blur-sm border-border/30 rounded-2xl">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h3 className="font-semibold text-lg">Usage Overview</h3>
-                <p className="text-gray-600">
+                <h3 className="font-semibold text-foreground text-lg">Usage Overview</h3>
+                <p className="text-muted-foreground">
                   {planName} - {notebooks.length}/{maxNotebooks} notebooks used
                 </p>
               </div>
-              <div className="flex items-center space-x-4">
-                <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="flex items-center space-x-4 w-full sm:w-auto">
+                <div className="flex-1 sm:w-32 h-2 bg-secondary rounded-full overflow-hidden">
                   <div 
-                    className="h-full gradient-bg transition-all duration-300"
-                    style={{ 
-                      width: `${(notebooks.length / maxNotebooks) * 100}%` 
-                    }}
+                    className="h-full gradient-bg transition-all duration-500"
+                    style={{ width: `${usagePercent}%` }}
                   />
                 </div>
                 {userPlan?.id === 'free' && notebooks.length >= maxNotebooks && (
-                  <Button variant="outline" size="sm">
-                    Upgrade to Pro
+                  <Button variant="outline" size="sm" className="rounded-xl border-primary/30 text-primary">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Upgrade
                   </Button>
                 )}
               </div>
@@ -115,18 +108,20 @@ const Dashboard = () => {
 
         {/* Notebooks Grid */}
         {notebooks.length === 0 ? (
-          <Card className="text-center py-12">
+          <Card className="bg-card/50 backdrop-blur-sm border-border/30 rounded-2xl text-center py-16">
             <CardContent>
-              <QrCode className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <div className="w-20 h-20 gradient-bg rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-glow">
+                <QrCode className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-2">
                 No Notebooks Yet
               </h3>
-              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                 Get started by registering your first Noteit notebook. 
                 Scan the QR code on your notebook cover to begin.
               </p>
               <Link to="/register-notebook">
-                <Button className="gradient-bg">
+                <Button className="gradient-bg text-primary-foreground rounded-xl shadow-glow-sm hover:shadow-glow transition-all">
                   <Plus className="w-4 h-4 mr-2" />
                   Register Your First Notebook
                 </Button>
@@ -136,38 +131,38 @@ const Dashboard = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {notebooks.map((notebook) => (
-              <Card key={notebook.id} className="hover-scale group">
+              <Card key={notebook.id} className="bg-card/50 backdrop-blur-sm border-border/30 rounded-2xl hover-scale group overflow-hidden">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg line-clamp-1">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg text-foreground truncate">
                         {notebook.nickname}
                       </CardTitle>
-                      <CardDescription className="text-sm text-gray-500">
+                      <CardDescription className="text-muted-foreground">
                         {notebook.title}
                       </CardDescription>
                     </div>
-                    <Badge className={getCategoryColor(notebook.category_id)}>
+                    <Badge className="bg-primary/10 text-primary border-primary/20 ml-2">
                       {getCategoryName(notebook.category_id)}
                     </Badge>
                   </div>
                 </CardHeader>
 
                 <CardContent>
-                  <div className="space-y-3">
-                    {/* Notebook Cover Placeholder */}
-                    <div className="h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
-                      <BookOpen className="w-12 h-12 text-gray-400" />
+                  <div className="space-y-4">
+                    {/* Notebook Cover */}
+                    <div className={`h-32 ${getCategoryGradient(notebook.category_id)} rounded-xl flex items-center justify-center shadow-lg`}>
+                      <BookOpen className="w-12 h-12 text-white/80" />
                     </div>
 
                     {/* Stats */}
-                    <div className="flex justify-between text-sm text-gray-600">
+                    <div className="flex justify-between text-sm text-muted-foreground">
                       <span>{notebook.total_pages} pages</span>
                       <span className="flex items-center">
                         <Calendar className="w-3 h-3 mr-1" />
                         {notebook.last_used 
                           ? formatDate(notebook.last_used)
-                          : formatDate(notebook.registered_at)
+                          : formatDate(notebook.registered_at || new Date().toISOString())
                         }
                       </span>
                     </div>
@@ -175,15 +170,15 @@ const Dashboard = () => {
                     {/* Actions */}
                     <div className="flex space-x-2 pt-2">
                       <Link to={`/notebook/${notebook.id}`} className="flex-1">
-                        <Button variant="outline" className="w-full">
+                        <Button variant="outline" className="w-full rounded-xl border-border/50 hover:bg-primary/10 hover:text-primary hover:border-primary/30">
                           Open
                         </Button>
                       </Link>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={() => deleteNotebook(notebook.id)}
-                        className="text-red-600 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -197,33 +192,31 @@ const Dashboard = () => {
 
         {/* Recent Activity */}
         {notebooks.length > 0 && (
-          <Card className="mt-8">
+          <Card className="mt-8 bg-card/50 backdrop-blur-sm border-border/30 rounded-2xl">
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>
-                Your latest notebook interactions
-              </CardDescription>
+              <CardTitle className="text-foreground">Recent Activity</CardTitle>
+              <CardDescription>Your latest notebook interactions</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {notebooks
-                  .sort((a, b) => new Date(b.last_used || b.registered_at).getTime() - new Date(a.last_used || a.registered_at).getTime())
+                  .sort((a, b) => new Date(b.last_used || b.registered_at || '').getTime() - new Date(a.last_used || a.registered_at || '').getTime())
                   .slice(0, 5)
                   .map((notebook) => (
-                    <div key={notebook.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                    <div key={notebook.id} className="flex items-center justify-between py-3 border-b border-border/30 last:border-0">
                       <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
-                          <BookOpen className="w-4 h-4 text-gray-600" />
+                        <div className={`w-10 h-10 ${getCategoryGradient(notebook.category_id)} rounded-xl flex items-center justify-center`}>
+                          <BookOpen className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{notebook.nickname}</p>
-                          <p className="text-xs text-gray-500">
-                            {notebook.last_used ? 'Last used' : 'Registered'} {formatDate(notebook.last_used || notebook.registered_at)}
+                          <p className="font-medium text-foreground">{notebook.nickname}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {notebook.last_used ? 'Last used' : 'Registered'} {formatDate(notebook.last_used || notebook.registered_at || '')}
                           </p>
                         </div>
                       </div>
                       <Link to={`/notebook/${notebook.id}`}>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10 rounded-xl">
                           View
                         </Button>
                       </Link>

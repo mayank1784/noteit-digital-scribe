@@ -1,74 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 248 250 252;
-    --foreground: 31 41 55;
+    /* Light mode - "Paper Mode" */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 10%;
 
-    --card: 255 255 255;
-    --card-foreground: 31 41 55;
+    --card: 240 6% 97%;
+    --card-foreground: 240 10% 10%;
 
-    --popover: 255 255 255;
-    --popover-foreground: 31 41 55;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
 
-    --primary: 59 130 246;
-    --primary-foreground: 255 255 255;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 16 185 129;
-    --secondary-foreground: 255 255 255;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 10% 10%;
 
-    --muted: 229 231 235;
-    --muted-foreground: 107 114 128;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
 
-    --accent: 245 158 11;
-    --accent-foreground: 255 255 255;
+    --accent: 239 84% 67%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 220 38 38;
-    --destructive-foreground: 255 255 255;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 229 231 235;
-    --input: 229 231 235;
-    --ring: 59 130 246;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 239 84% 67%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
+
+    /* Gradient stops for primary */
+    --gradient-start: 239 84% 67%;
+    --gradient-end: 262 83% 58%;
+  }
+
+  .dark {
+    /* Dark mode - Default "Tech Mode" */
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 6% 10%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 6% 10%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 239 84% 67%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 239 84% 67%;
+
+    --gradient-start: 239 84% 67%;
+    --gradient-end: 262 83% 58%;
   }
 
   * {
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
-      "Roboto", sans-serif;
-    /* Prevent zoom on iOS when focusing inputs */
-    -webkit-text-size-adjust: 100%;
-    /* Improve touch scrolling */
-    -webkit-overflow-scrolling: touch;
+  html {
+    @apply dark;
   }
 
-  /* Custom scrollbar */
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+    -webkit-text-size-adjust: 100%;
+    -webkit-overflow-scrolling: touch;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  /* Custom scrollbar - Dark themed */
   ::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-gray-100;
+    @apply bg-background;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
+    @apply bg-muted rounded-full;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400;
+    @apply bg-muted-foreground/30;
   }
 
   /* Mobile-specific improvements */
   @media (max-width: 768px) {
-    /* Prevent zoom on form inputs */
     input[type="text"],
     input[type="email"],
     input[type="password"],
@@ -78,39 +121,62 @@
       font-size: 16px !important;
     }
 
-    /* Improve tap targets */
     button,
     a,
     [role="button"] {
       min-height: 44px;
-      min-width: 44px;
     }
   }
 }
 
 @layer components {
+  /* Primary gradient - Electric Indigo */
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--gradient-start)) 0%, hsl(var(--gradient-end)) 100%);
+  }
+
+  /* Legacy support */
   .gradient-bg {
-    background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+    background: linear-gradient(135deg, hsl(var(--gradient-start)) 0%, hsl(var(--gradient-end)) 100%);
   }
 
+  /* Glass morphism effect */
   .glass-card {
-    @apply backdrop-blur-sm bg-white/80 border border-white/20;
+    @apply backdrop-blur-xl bg-card/80 border border-border/50;
   }
 
+  .glass-button {
+    @apply backdrop-blur-md bg-primary/10 border border-primary/20;
+  }
+
+  /* Glow effects */
+  .glow-primary {
+    box-shadow: 0 0 40px -10px hsl(var(--primary) / 0.5);
+  }
+
+  .glow-sm {
+    box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.3);
+  }
+
+  /* Premium card styling */
+  .premium-card {
+    @apply bg-card rounded-2xl border border-border/50 shadow-lg;
+  }
+
+  /* Hover effects */
   .hover-scale {
-    @apply transition-transform duration-200;
+    @apply transition-all duration-300 ease-out;
   }
 
-  /* Only apply hover effects on non-touch devices */
   @media (hover: hover) {
     .hover-scale:hover {
-      @apply scale-105;
+      @apply scale-[1.02] shadow-xl;
     }
   }
 
   /* Mobile-optimized card styling */
   .mobile-card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4;
+    @apply bg-card rounded-2xl border border-border/50 p-4 sm:p-6;
   }
 
   /* Safe area for mobile devices */
@@ -126,16 +192,58 @@
   .touch-button {
     @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
   }
+
+  /* Indigo glow button */
+  .indigo-glow-btn {
+    @apply bg-primary text-primary-foreground rounded-2xl font-medium;
+    box-shadow: 
+      0 10px 40px -10px hsl(var(--primary) / 0.5),
+      0 0 20px -5px hsl(var(--primary) / 0.3);
+  }
+
+  /* Floating action button */
+  .fab {
+    @apply fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center;
+    @apply bg-primary text-primary-foreground shadow-2xl;
+    box-shadow: 
+      0 10px 40px -10px hsl(var(--primary) / 0.6),
+      0 0 60px -10px hsl(var(--primary) / 0.4);
+  }
+
+  /* Notebook cover gradient styles */
+  .notebook-gradient-student {
+    background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 50%, #C4B5FD 100%);
+  }
+
+  .notebook-gradient-business {
+    background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 50%, #93C5FD 100%);
+  }
+
+  .notebook-gradient-creative {
+    background: linear-gradient(135deg, #EC4899 0%, #F472B6 50%, #FBCFE8 100%);
+  }
+
+  .notebook-gradient-journal {
+    background: linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%);
+  }
+
+  .notebook-gradient-planner {
+    background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #FDE68A 100%);
+  }
+
+  /* Text gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--gradient-start)) 0%, hsl(var(--gradient-end)) 100%);
+  }
 }
 
 /* PWA-specific styles */
 @media (display-mode: standalone) {
   body {
-    /* Hide the default browser UI elements */
     -webkit-app-region: no-drag;
   }
 
-  /* Adjust for status bar on mobile devices */
   .app-header {
     padding-top: env(safe-area-inset-top);
   }
@@ -143,16 +251,18 @@
 
 /* Optimize for mobile performance */
 * {
-  /* Hardware acceleration for smoother animations */
   -webkit-transform: translateZ(0);
-  /* Reduce paint complexity */
   -webkit-backface-visibility: hidden;
 }
 
 /* Image optimization for mobile */
 img {
-  /* Prevent layout shift */
   height: auto;
-  /* Optimize rendering */
   image-rendering: -webkit-optimize-contrast;
+}
+
+/* Selection color */
+::selection {
+  background: hsl(var(--primary) / 0.3);
+  color: hsl(var(--foreground));
 }

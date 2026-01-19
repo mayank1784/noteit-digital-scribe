@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, Settings, Moon, Sun } from 'lucide-react';
+import noteitLogo from '@/assets/noteit-logo.png';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -20,47 +20,61 @@ const Layout: React.FC<LayoutProps> = ({ children, showHeader = true, title }) =
     navigate('/');
   };
 
+  const toggleTheme = () => {
+    document.documentElement.classList.toggle('dark');
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
+    <div className="min-h-screen bg-background">
       {showHeader && (
-        <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
+        <header className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center space-x-4">
-                <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-2">
-                  <div className="w-8 h-8 gradient-bg rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">N</span>
-                  </div>
-                  <span className="text-xl font-bold text-gray-900">Noteit.digital</span>
+                <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-3">
+                  <img 
+                    src={noteitLogo} 
+                    alt="Noteit" 
+                    className="h-9 w-auto"
+                  />
                 </Link>
                 {title && (
                   <>
-                    <span className="text-gray-400">/</span>
-                    <span className="text-gray-600 font-medium">{title}</span>
+                    <span className="text-muted-foreground">/</span>
+                    <span className="text-foreground font-medium">{title}</span>
                   </>
                 )}
               </div>
 
               {user && (
-                <div className="flex items-center space-x-3">
-                  <span className="text-sm text-gray-600 hidden sm:block">
-                    Welcome, {user.name}
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-muted-foreground hidden sm:block">
+                    {user.name}
                   </span>
                   <Button
                     variant="ghost"
-                    size="sm"
-                    onClick={() => navigate('/settings')}
-                    className="p-2"
+                    size="icon"
+                    onClick={toggleTheme}
+                    className="text-muted-foreground hover:text-foreground"
                   >
-                    <Settings className="w-4 h-4" />
+                    <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                    <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                   </Button>
                   <Button
                     variant="ghost"
-                    size="sm"
-                    onClick={handleLogout}
-                    className="p-2 text-red-600 hover:text-red-700"
+                    size="icon"
+                    onClick={() => navigate('/settings')}
+                    className="text-muted-foreground hover:text-foreground"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleLogout}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4" />
                   </Button>
                 </div>
               )}
